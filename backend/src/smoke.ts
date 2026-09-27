@@ -2,10 +2,29 @@ import 'dotenv/config'
 import { randomBytes } from 'node:crypto'
 import { pool } from './database.js'
 
-const base = `http://localhost:${process.env.PORT || 8787}`
+const base = (process.env.SMOKE_BASE_URL || `http://localhost:${process.env.PORT || 8787}`).replace(/\/$/, '')
 const marker = randomBytes(5).toString('hex')
 let organizationId = ''
 let userId = ''
+
+async function cleanupSmokeRecords() {
+  if (!pool) return
+  let lastError: unknown
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      await pool.query(`DELETE FROM organizations WHERE id=$1 OR id IN (
+        SELECT m.organization_id FROM memberships m JOIN users u ON u.id=m.user_id
+        WHERE u.email LIKE 'smoke-%@incident-command.test'
+      )`, [organizationId || null])
+      await pool.query(`DELETE FROM users WHERE id=$1 OR email LIKE 'smoke-%@incident-command.test'`, [userId || null])
+      return
+    } catch (error) {
+      lastError = error
+      if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, attempt * 1000))
+    }
+  }
+  throw lastError
+}
 
 async function call<T>(path: string, cookie: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${base}${path}`, { ...init, headers: { 'content-type': 'application/json', cookie, ...init?.headers } })
@@ -40,7 +59,9 @@ try {
   if (overview.data.metrics.active < 1 || overview.data.metrics.servicesTotal !== 1) throw new Error('Overview did not reflect persisted organization data')
   console.log(JSON.stringify({ authenticated: true, realtime: true, servicePersistence: true, telemetryIngest: true, incidentWorkflow: true, openRouter: true, persistedAnalysisCache: true, overview: true, confidence: analysis.data.confidence }, null, 2))
 } finally {
-  if (pool && organizationId) await pool.query('DELETE FROM organizations WHERE id=$1', [organizationId])
-  if (pool && userId) await pool.query('DELETE FROM users WHERE id=$1', [userId])
-  await pool?.end()
+  try {
+    await cleanupSmokeRecords()
+  } finally {
+    await pool?.end()
+  }
 }

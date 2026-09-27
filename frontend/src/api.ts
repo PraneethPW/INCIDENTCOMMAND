@@ -2,8 +2,11 @@ import type { Analysis, AppConfig, Incident, IncidentStatus, LiveEvent, Overview
 
 export class ApiError extends Error { status: number; setup?: string; constructor(message: string, status: number, setup?: string) { super(message); this.status = status; this.setup = setup } }
 
+const apiBase = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
+const apiUrl = (path: string) => `${apiBase}${path}`
+
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, { credentials: 'include', ...init, headers: { 'Content-Type': 'application/json', ...init?.headers } })
+  const response = await fetch(apiUrl(url), { credentials: 'include', ...init, headers: { 'Content-Type': 'application/json', ...init?.headers } })
   const payload = await response.json().catch(() => ({})) as { error?: string; setup?: string }
   if (!response.ok) throw new ApiError(payload.error || `Request failed (${response.status})`, response.status, payload.setup)
   return payload as T
@@ -27,7 +30,7 @@ export const api = {
 }
 
 export function subscribe(onEvent: (event: LiveEvent) => void, onConnection: (connected: boolean) => void) {
-  const stream = new EventSource('/api/stream', { withCredentials: true })
+  const stream = new EventSource(apiUrl('/api/stream'), { withCredentials: true })
   stream.onopen = () => onConnection(true)
   stream.onmessage = (event) => { try { onEvent(JSON.parse(event.data) as LiveEvent) } catch { /* Ignore malformed frames. */ } }
   stream.onerror = () => onConnection(false)

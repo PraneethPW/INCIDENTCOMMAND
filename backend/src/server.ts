@@ -15,6 +15,7 @@ const app = express()
 const port = Number(process.env.PORT || 8787)
 const origins = process.env.FRONTEND_URL?.split(',').map((item) => item.trim()) || ['http://localhost:5173']
 
+app.set('trust proxy', 1)
 app.use(cors({ origin: origins, credentials: true }))
 app.use((req, res, next) => {
   const startedAt = Date.now()

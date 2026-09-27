@@ -4,6 +4,11 @@ import { requirePool } from './database.js'
 
 const COOKIE = 'incident_command_session'
 
+function cookieSecurity() {
+  const production = process.env.NODE_ENV === 'production'
+  return { sameSite: production ? 'none' as const : 'lax' as const, secure: production }
+}
+
 export interface SessionUser {
   userId: string
   organizationId: string
@@ -42,15 +47,14 @@ export async function createSessionToken(userId: string, organizationId: string)
 export function setSessionCookie(res: Response, token: string) {
   res.cookie(COOKIE, token, {
     httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    ...cookieSecurity(),
     maxAge: 7 * 24 * 60 * 60 * 1000,
     path: '/',
   })
 }
 
 export function clearSessionCookie(res: Response) {
-  res.clearCookie(COOKIE, { path: '/' })
+  res.clearCookie(COOKIE, { path: '/', ...cookieSecurity() })
 }
 
 export async function resolveSession(req: Request): Promise<SessionUser | null> {
