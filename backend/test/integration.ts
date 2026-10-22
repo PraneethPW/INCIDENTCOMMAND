@@ -79,6 +79,10 @@ after(async () => {
 });
 
 test("authentication, origin protection, and organization boundaries", async () => {
+  assert.equal(
+    (await call("/api/config")).data.capabilities.operatorControls,
+    true,
+  );
   assert.equal((await call("/api/incidents")).status, 401);
   assert.equal(
     (

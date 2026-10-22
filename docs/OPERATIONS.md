@@ -20,6 +20,8 @@ Railway settings:
 - Optional `OPENROUTER_FALLBACK_MODELS`: comma-separated fallback model IDs; at most two total attempts run
 - Optional `DATABASE_LISTEN_URL`: a direct, session-capable PostgreSQL connection. For Neon, the application derives it by removing `-pooler` from the hostname.
 
+The frontend checks the backend capability marker before showing team, service management, and collaboration controls. During a delayed backend rollout it keeps the existing workflow available and shows an update-pending notice. Refresh the cockpit after the backend release completes.
+
 The direct connection is required for `LISTEN`; notifications are issued through regular pooled queries. Each API replica subscribes to committed database events and forwards them only to the matching organization. Transports reconnect every five minutes to renew session authorization. A reconnect refreshes the current snapshot, and a visible cockpit refreshes every minute to recover from missed frames. The feed is a session activity feed, not a durable event replay; the incident timeline remains the durable record.
 
 ## Release and rollback

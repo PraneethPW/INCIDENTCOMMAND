@@ -812,6 +812,7 @@ function CommandCenter({
   const [showActivity, setShowActivity] = useState(false);
   const [checking, setChecking] = useState<string[]>([]);
   const [statusBusy, setStatusBusy] = useState(false);
+  const operatorControlsReady = Boolean(config.capabilities?.operatorControls);
   const canWrite = user.role !== "viewer";
   const canManage = ["owner", "admin"].includes(user.role);
   const filteredIncidents = incidents.filter(
@@ -1090,12 +1091,16 @@ function CommandCenter({
           >
             <Network /> Services
           </button>
-          <button
-            className={view === "team" ? "active" : ""}
-            onClick={() => setView("team")}
-          >
-            <ShieldCheck /> Team & access
-          </button>
+          {operatorControlsReady && (
+            <>
+              <button
+                className={view === "team" ? "active" : ""}
+                onClick={() => setView("team")}
+              >
+                <ShieldCheck /> Team & access
+              </button>
+            </>
+          )}
         </nav>
         <div className="sidebar-label">LIVE LINK</div>
         <div className="system-health">
@@ -1174,7 +1179,14 @@ function CommandCenter({
             </div>
           </div>
         </header>
-        {view === "team" && (
+        {!operatorControlsReady && (
+          <div className="deployment-notice" role="status">
+            The backend update is pending. Monitoring and existing incident
+            operations are available. Refresh after the backend release to use
+            team access and the new service controls.
+          </div>
+        )}
+        {operatorControlsReady && view === "team" && (
           <TeamPanel user={user} onWorkspaceChanged={onWorkspaceChanged} />
         )}
         {showActivity && (
@@ -1555,12 +1567,14 @@ function CommandCenter({
                       <BrainCircuit /> Analyze real evidence
                     </button>
                   </div>
-                  <IncidentCollaboration
-                    key={selected.id}
-                    incident={selected}
-                    user={user}
-                    onUpdated={() => void refresh()}
-                  />
+                  {operatorControlsReady && (
+                    <IncidentCollaboration
+                      key={selected.id}
+                      incident={selected}
+                      user={user}
+                      onUpdated={() => void refresh()}
+                    />
+                  )}
                   <div className="timeline">
                     <h3>OPERATION TIMELINE</h3>
                     {selected.events?.length ? (
@@ -1744,11 +1758,13 @@ function CommandCenter({
                         <Copy /> Copy ingest command
                       </button>
                     </div>
-                    <ServiceControls
-                      service={service}
-                      user={user}
-                      onUpdated={() => void refresh()}
-                    />
+                    {operatorControlsReady && (
+                      <ServiceControls
+                        service={service}
+                        user={user}
+                        onUpdated={() => void refresh()}
+                      />
+                    )}
                   </article>
                 ))}
               </div>

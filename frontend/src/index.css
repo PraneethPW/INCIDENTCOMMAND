@@ -3084,3 +3084,12 @@ button:disabled {
     inset 0 0 80px #23c4e222;
   background: radial-gradient(circle, #0a344466, transparent 65%);
 }
+.deployment-notice {
+  margin: 0 0 22px;
+  padding: 14px 18px;
+  border: 1px solid #79603555;
+  background: #33261644;
+  color: #e6c78e;
+  font-size: 13px;
+  line-height: 1.65;
+}

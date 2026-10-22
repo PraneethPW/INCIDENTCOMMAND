@@ -3,6 +3,7 @@ export type IncidentStatus =
   "investigating" | "identified" | "monitoring" | "resolved";
 
 export interface AppConfig {
+  capabilities?: { operatorControls: boolean };
   databaseConfigured: boolean;
   databaseReady: boolean;
   sessionConfigured: boolean;
