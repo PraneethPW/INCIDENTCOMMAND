@@ -2,7 +2,26 @@
 
 A real-time, multi-user incident operations platform. The application starts with zero operational records and uses only data created by signed-in users, monitored health endpoints, or authenticated telemetry ingest.
 
-## 1. Configure
+## 1. Install dependencies
+
+Run these commands from the `INCIDENTCOMMAND` repository root. Node.js 22.12 or newer is required.
+
+```bash
+npm run install:all
+```
+
+Install dependencies before database setup. This installs the backend's `tsx` command as well as the frontend and root development tools.
+
+## 2. Configure
+
+Create the local environment files on macOS or Linux:
+
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+```
+
+On Windows PowerShell:
 
 ```powershell
 Copy-Item backend/.env.example backend/.env
@@ -26,18 +45,17 @@ Use exactly one local environment file per app: `backend/.env` for server-only s
 
 Leave `VITE_API_URL=` blank in `frontend/.env` to use the existing API proxy. Database credentials, session secrets, and AI keys belong only in `backend/.env` or Railway's environment variables. Vercel frontend variables are public build-time settings.
 
-## 2. Initialize Neon
+## 3. Initialize Neon
 
-```powershell
+```bash
 npm run db:setup --prefix backend
 ```
 
 This creates the schema only. It does not insert mock or sample data.
 
-## 3. Run
+## 4. Run
 
-```powershell
-npm run install:all
+```bash
 npm run dev
 ```
 
