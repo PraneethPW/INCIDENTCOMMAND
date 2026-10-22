@@ -87,6 +87,7 @@ const incidentSelect = `
 app.get("/api/config", async (_req, res) => {
   res.json({
     data: {
+      capabilities: { operatorControls: true },
       databaseConfigured: Boolean(process.env.DATABASE_URL),
       databaseReady: await databaseReady(),
       sessionConfigured: Boolean(
