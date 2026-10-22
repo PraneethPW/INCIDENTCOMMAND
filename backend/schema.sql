@@ -132,3 +132,12 @@ CREATE INDEX IF NOT EXISTS incidents_started_at_idx ON incidents(organization_id
 CREATE INDEX IF NOT EXISTS incident_events_incident_idx ON incident_events(incident_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS ai_analyses_context_idx ON ai_analyses(organization_id, incident_id, context_hash, created_at DESC);
 CREATE INDEX IF NOT EXISTS telemetry_service_idx ON telemetry_events(service_id, received_at DESC);
+
+CREATE TABLE IF NOT EXISTS workspace_invites (
+  token_hash TEXT PRIMARY KEY,
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  role TEXT NOT NULL CHECK (role IN ('responder','viewer','admin')),
+  expires_at TIMESTAMPTZ NOT NULL DEFAULT NOW() + INTERVAL '2 days',
+  used_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS invites_org_idx ON workspace_invites(organization_id);

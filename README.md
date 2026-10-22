@@ -70,3 +70,11 @@ Open `http://localhost:5173` and follow the product flow:
 - Frontend: React, TypeScript, Tailwind CSS, Framer Motion, React Three Fiber, Recharts
 - Backend: Express, TypeScript, Neon PostgreSQL, signed HTTP-only sessions, SSE
 - AI: OpenRouter with `openrouter/free` by default
+
+## Operator controls and release verification
+
+The cockpit includes incident search and filters, persisted responder notes and ownership, JSON incident export, service settings and monitoring pause, ingest-key rotation, recent signal history, and role-based workspace invitations and switching. Connection failures expose a retry action, and reconnecting live streams reload current records.
+
+Health checks serialize per service; incident changes and their timelines commit together. Critical telemetry is deduplicated under concurrent requests. PostgreSQL notifications distribute committed updates across API replicas; Neon uses a direct connection for the listener and pooled connections for application traffic.
+
+See [the operations runbook](docs/OPERATIONS.md) for deployment, database replacement, role permissions, verification, and the current capacity and feature limits. Run the integration suite only against an isolated `incident_test` database. GitHub Actions builds both applications, runs the suite with PostgreSQL, and lints the frontend.
