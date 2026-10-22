@@ -6,6 +6,7 @@ A real-time, multi-user incident operations platform. The application starts wit
 
 ```powershell
 Copy-Item backend/.env.example backend/.env
+Copy-Item frontend/.env.example frontend/.env
 ```
 
 Edit `backend/.env`:
@@ -19,7 +20,11 @@ PORT=8787
 FRONTEND_URL=http://localhost:5173
 ```
 
-`OPENROUTER_API_KEY` is optional until an operator runs root-cause analysis. The database and session secret are required.
+`OPENROUTER_API_KEY` is optional until an operator runs root-cause analysis. The database and session secret are required. Run `npm run setup:secret` to generate the local session secret.
+
+Use exactly one local environment file per app: `backend/.env` for server-only settings and `frontend/.env` for public frontend settings. No root `.env` is needed. Both local files are ignored by Git; the adjacent `.env.example` files are safe setup templates.
+
+Leave `VITE_API_URL=` blank in `frontend/.env` to use the existing API proxy. Database credentials, session secrets, and AI keys belong only in `backend/.env` or Railway's environment variables. Vercel frontend variables are public build-time settings.
 
 ## 2. Initialize Neon
 

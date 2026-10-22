@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "./env.js";
 import { createHash, randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import cookieParser from "cookie-parser";

@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "./env.js";
 import { randomBytes } from "node:crypto";
 import { pool } from "./database.js";
 

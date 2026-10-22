@@ -1,5 +1,9 @@
 # Operating Incident Command
 
+## Local environment files
+
+Use `backend/.env` for server credentials and settings, and `frontend/.env` for public build-time frontend settings. Copy each folder's `.env.example` to create its local file. The backend loads its own file relative to the module location in either `src/` or `dist/`; Vite loads from the frontend folder. No root `.env` is required. Deployment-provided variables take precedence, and tests use the environment supplied by the test runner. Never commit the local `.env` files.
+
 ## Production layout
 
 The Vercel frontend forwards `/api/*` to Railway. Keep frontend requests on this same origin so HTTP-only cookies and the EventSource stream work without depending on third-party cookies. Railway runs the API and scheduled health monitor; PostgreSQL holds organization-scoped records. OpenRouter is called only when an operator requests analysis.
