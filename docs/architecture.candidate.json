@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Incident Command AI · source architecture",
+    "locale": "en",
+    "output": "docs/architecture.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/PraneethPW/INCIDENTCOMMAND.git",
+      "revision": "f1a3eb22e2d0d2006cfdaddf1cdc0b37b3faacdf"
+    },
+    "views": [
+      {"id":"declare","label":"Declare an incident","focus":["cockpit","api","postgres","realtime"],"note":"POST /api/incidents → authorized transaction → 201 response; committed changes notify organization-scoped SSE clients."},
+      {"id":"monitoring","label":"Health monitoring","focus":["api","monitor","health","postgres","realtime"],"note":"Manual or scheduled probes lock the service row; two failures declare an incident, recovery resolves health-monitor incidents."},
+      {"id":"intelligence","label":"Optional AI analysis","focus":["cockpit","api","postgres","openrouter"],"note":"The API reads persisted evidence, reuses an unchanged analysis, or calls OpenRouter and stores the validated result."}
+    ]
+  },
+  "components": [
+    {"id":"cockpit","type":"frontend","label":"React cockpit","sublabel":"ProductApp + api.ts","tag":"Operator browser","pos":[40,270],"size":[190,80],"sources":[
+      {"path":"frontend/src/ProductApp.tsx","line":564,"end_line":601,"label":"Incident form submits API request"},
+      {"path":"frontend/src/api.ts","line":22,"end_line":96,"label":"Credentialed JSON requests"},
+      {"path":"frontend/src/ProductApp.tsx","line":830,"end_line":902,"label":"SSE triggers refresh; polling fallback"}
+    ]},
+    {"id":"api","type":"backend","label":"Express API","sublabel":"Routes + auth + workspace","tag":"JWT / membership / roles","pos":[440,270],"size":[210,90],"sources":[
+      {"path":"backend/src/server.ts","line":216,"end_line":527,"label":"Authorization, incidents and analysis"},
+      {"path":"backend/src/server.ts","line":659,"end_line":792,"label":"Manual check, SSE and keyed ingest"},
+      {"path":"backend/src/auth.ts","line":72,"end_line":114,"label":"JWT verification and membership lookup"}
+    ]},
+    {"id":"openrouter","type":"external","label":"OpenRouter","sublabel":"Optional analysis provider","tag":"Configured key required","pos":[440,40],"size":[210,80],"sources":[
+      {"path":"backend/src/ai.ts","line":93,"end_line":211,"label":"HTTPS request, retries and validation"}
+    ]},
+    {"id":"telemetry","type":"external","label":"Telemetry sender","sublabel":"External caller contract","tag":"Sender implementation unknown","pos":[40,40],"size":[190,80],"sources":[
+      {"path":"backend/src/server.ts","line":683,"end_line":792,"label":"Ingest route and key enforcement"}
+    ]},
+    {"id":"monitor","type":"backend","label":"Health monitor","sublabel":"In-process scheduled loop","tag":"Also called by Check now","pos":[850,270],"size":[210,90],"sources":[
+      {"path":"backend/src/monitor.ts","line":22,"end_line":150,"label":"Locked probe, persistence and NOTIFY"},
+      {"path":"backend/src/monitor.ts","line":153,"end_line":212,"label":"Due checks and scheduling"},
+      {"path":"backend/src/server.ts","line":828,"end_line":843,"label":"Monitor and SSE start with Express"}
+    ]},
+    {"id":"health","type":"external","label":"Health endpoint","sublabel":"Configured public URL","tag":"Actual target unknown","pos":[850,40],"size":[210,80],"sources":[
+      {"path":"backend/src/security.ts","line":17,"end_line":60,"label":"Public DNS validation and HTTP GET"},
+      {"path":"backend/src/monitor.ts","line":38,"end_line":67,"label":"Configured URL and expected status"}
+    ]},
+    {"id":"postgres","type":"database","label":"PostgreSQL","sublabel":"Durable state + NOTIFY","tag":"DATABASE_URL · Neon supported","pos":[850,550],"size":[210,90],"sources":[
+      {"path":"backend/src/database.ts","line":4,"end_line":65,"label":"pg pool and transaction helper"},
+      {"path":"backend/schema.sql","line":3,"end_line":116,"label":"Organizations, incidents and signals"},
+      {"path":"backend/src/realtime.ts","line":45,"end_line":89,"label":"Dedicated LISTEN connection"}
+    ]},
+    {"id":"realtime","type":"backend","label":"Realtime / SSE","sublabel":"In-process organization fan-out","tag":"PostgreSQL LISTEN connection","pos":[440,550],"size":[210,90],"sources":[
+      {"path":"backend/src/realtime.ts","line":13,"end_line":101,"label":"Publish, LISTEN, SSE and heartbeat"},
+      {"path":"backend/src/server.ts","line":669,"end_line":680,"label":"Authenticated stream attaches client"},
+      {"path":"frontend/src/api.ts","line":167,"end_line":184,"label":"Credentialed EventSource subscriber"}
+    ]}
+  ],
+  "connections": [
+    {"id":"declare-request","from":"cockpit","to":"api","label":"1 · POST /api/incidents","variant":"emphasis"},
+    {"id":"created-response","from":"api","to":"cockpit","label":"201 · incident JSON"},
+    {"id":"api-storage","from":"api","to":"postgres","label":"2 · SQL transaction","variant":"emphasis"},
+    {"id":"publish-created","from":"api","to":"realtime","label":"3 · after commit","variant":"emphasis"},
+    {"id":"publish-notify","from":"realtime","to":"postgres","label":"4 · pg_notify","variant":"dashed"},
+    {"id":"listen-events","from":"postgres","to":"realtime","label":"5 · LISTEN events","variant":"dashed"},
+    {"id":"sse-refresh","from":"realtime","to":"cockpit","label":"6 · SSE → refresh","variant":"dashed"},
+    {"id":"ingest-request","from":"telemetry","to":"api","label":"POST · x-ingest-key","variant":"security"},
+    {"id":"optional-analysis","from":"api","to":"openrouter","label":"Cache miss + key · HTTPS"},
+    {"id":"manual-check","from":"api","to":"monitor","label":"Authorized Check now"},
+    {"id":"health-probe","from":"monitor","to":"health","label":"Validated HTTP(S) GET"},
+    {"id":"monitor-storage","from":"monitor","to":"postgres","label":"SQL + commit-time NOTIFY"}
+  ],
+  "cards": [
+    {"dot":"cyan","title":"Main request · declare an incident","items":[
+      "1. CreateIncidentModal sends POST /api/incidents with the session cookie. The API verifies the JWT and current workspace membership; viewers cannot write.",
+      "2. server.ts:327–385 validates input and optional service ownership, commits incidents + incident_events together, then reads the created incident and returns HTTP 201.",
+      "3–6. After commit, broadcast() publishes a small PostgreSQL notification. Each API listener fans it out to that organization's SSE clients. ProductApp refreshes records after an event (350 ms debounce).",
+      "The 201 response and asynchronous notification are separate outcomes. A notification-query failure falls back to clients attached to that process; SSE is not a durable replay queue."
+    ]},
+    {"dot":"emerald","title":"Runtime and persistence","items":[
+      "Express routes, auth.ts, workspace.ts, ai.ts, monitor.ts and realtime.ts run inside the same Node process; they are logical modules, not independently deployed services (server.ts:828–843).",
+      "database.ts:4–65 owns the pg pool (max 10) and BEGIN/COMMIT/ROLLBACK helper. Route handlers and monitor.ts issue their own SQL through it.",
+      "backend/schema.sql stores organizations, users, memberships, services, checks, incidents, timeline events, AI analyses, telemetry and workspace invites.",
+      "workspace.ts:9–165 adds workspace switching, team permissions, notes and assignment through the same API, database and broadcast path."
+    ]},
+    {"dot":"amber","title":"Signals and behavior-changing conditions","items":[
+      "The monitor selects due, enabled services with health URLs; up to 25 per cycle, three concurrent checks. A service-row lock serializes probes. Two failures mark down and create an incident if none is active; recovery resolves health-monitor incidents.",
+      "Check now requires an authenticated non-viewer but bypasses the scheduled enabled/due test. Probes validate public DNS addresses and pin the HTTP(S) connection (security.ts:17–60).",
+      "Ingest bypasses cookie authentication but validates x-ingest-key, including under a row lock. Critical telemetry creates or updates an active telemetry-ingest incident; other severities only persist telemetry (server.ts:683–792)."
+    ]},
+    {"dot":"violet","title":"AI is an optional request branch","items":[
+      "POST /api/incidents/:id/analyze reads incident, timeline, checks and telemetry. An unchanged context hash returns the saved analysis without a provider call (server.ts:429–475).",
+      "On a cache miss, ai.ts:93–211 requires an API key, sends evidence to OpenRouter, attempts at most two configured models and validates the structured result. The API persists analysis + timeline event and broadcasts completion.",
+      "If the provider fails, the API returns a marked stale saved analysis when available; otherwise the request errors. The deployed key and model availability were not inspected."
+    ]},
+    {"dot":"slate","title":"Evidence scope and unknowns","items":[
+      "Source-backed runtime overview at f1a3eb2. Node source references link to the pinned commit. Arrow labels describe observed calls; external senders and health targets are contracts, with actual deployments unknown.",
+      "api.ts:22–34 supports VITE_API_URL or same-origin /api. vite.config.ts:10–12 proxies development traffic to localhost:8787. vercel.json:3–7 configures an HTTPS rewrite to Railway; whether that deployment is active is unverified.",
+      "PostgreSQL is required. Neon is supported by the listener's pooler-host rewrite, but the deployed database host and replica count are unknown. UI decoration, build tooling and individual CRUD endpoints are grouped rather than expanded.",
+      "Existing uncommitted frontend/package-lock.json changes were excluded from source evidence. No application code was changed to create this diagram."
+    ]}
+  ]
+}

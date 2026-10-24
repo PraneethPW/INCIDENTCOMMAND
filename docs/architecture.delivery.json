@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "45859098-76c2-4cce-9d57-4cf6f0decc9b",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND/docs/architecture.candidate.json",
+  "output": "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND/docs/architecture.html",
+  "specification": {
+    "sha256": "3f01504b50be8354de566652a78cce1ebc4f58a23d2d4c4fb172c369184fc980",
+    "bytes": 9952
+  },
+  "artifact": {
+    "sha256": "092891a3b6db7b532e5efb4e9a4d887133c47d960609e3ca2c5c91850da1944b",
+    "bytes": 837709
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "skipped",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND/docs/architecture.candidate.json",
+    "sha256": "3f01504b50be8354de566652a78cce1ebc4f58a23d2d4c4fb172c369184fc980",
+    "bytes": 9952
+  },
+  "artifact": {
+    "path": "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND/docs/architecture.html",
+    "sha256": "092891a3b6db7b532e5efb4e9a4d887133c47d960609e3ca2c5c91850da1944b",
+    "bytes": 837709
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "skipped"
+  },
+  "failedStage": "browser-check",
+  "diagnostics": [
+    {
+      "code": "viewer/chrome-unavailable",
+      "severity": "warning",
+      "message": "No supported browser found. Install Chrome/Chromium (or Microsoft Edge), or set ARCHIFY_CHROME to its executable path.",
+      "subject": {
+        "artifact": "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND/docs/architecture.html"
+      },
+      "evidence": {
+        "executable": null
+      },
+      "supportedFixes": [
+        "set ARCHIFY_CHROME to a Chrome/Chromium executable (or Microsoft Edge) and rerun browser-check"
+      ]
+    }
+  ],
+  "diagnosticSummary": {
+    "total": 1,
+    "shown": 1,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND/docs/architecture.finalize.json",
+    "summaryReceipt": "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND/docs/architecture.finalize-summary.json",
+    "browserCheckReceipt": "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND/docs/architecture.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 439,
+  "browserCheck": {
+    "requested": true,
+    "ran": false
+  }
+}

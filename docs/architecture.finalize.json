@@ -1,0 +1,409 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "skipped",
+  "type": "architecture",
+  "quality": "showcase",
+  "startedAt": "2026-10-22T19:52:24.597Z",
+  "specification": {
+    "path": "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND/docs/architecture.candidate.json",
+    "sha256": "3f01504b50be8354de566652a78cce1ebc4f58a23d2d4c4fb172c369184fc980",
+    "bytes": 9952
+  },
+  "artifact": {
+    "path": "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND/docs/architecture.html",
+    "sha256": "092891a3b6db7b532e5efb4e9a4d887133c47d960609e3ca2c5c91850da1944b",
+    "bytes": 837709
+  },
+  "stages": {
+    "validate": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": null,
+      "execution": "embedded-in-deliver",
+      "command": [
+        "/usr/local/bin/node",
+        "/Users/praneethreddy/.agents/skills/archify/bin/archify.mjs",
+        "deliver",
+        "architecture",
+        "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND/docs/architecture.candidate.json",
+        "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND/docs/architecture.html",
+        "--quality",
+        "showcase",
+        "--repo-root",
+        "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "validate",
+        "specification": {
+          "sha256": "3f01504b50be8354de566652a78cce1ebc4f58a23d2d4c4fb172c369184fc980",
+          "bytes": 9952
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        }
+      }
+    },
+    "deliver": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 266,
+      "command": [
+        "/usr/local/bin/node",
+        "/Users/praneethreddy/.agents/skills/archify/bin/archify.mjs",
+        "deliver",
+        "architecture",
+        "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND/docs/architecture.candidate.json",
+        "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND/docs/architecture.html",
+        "--quality",
+        "showcase",
+        "--repo-root",
+        "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "receiptId": "45859098-76c2-4cce-9d57-4cf6f0decc9b",
+        "ok": true,
+        "command": "deliver",
+        "type": "architecture",
+        "input": "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND/docs/architecture.candidate.json",
+        "output": "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND/docs/architecture.html",
+        "specification": {
+          "sha256": "3f01504b50be8354de566652a78cce1ebc4f58a23d2d4c4fb172c369184fc980",
+          "bytes": 9952
+        },
+        "artifact": {
+          "sha256": "092891a3b6db7b532e5efb4e9a4d887133c47d960609e3ca2c5c91850da1944b",
+          "bytes": 837709
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        },
+        "evidence": {
+          "verified": true,
+          "repository": "https://github.com/PraneethPW/INCIDENTCOMMAND",
+          "revision": "f1a3eb22e2d0d2006cfdaddf1cdc0b37b3faacdf",
+          "references": 19
+        },
+        "update": {
+          "status": "unavailable",
+          "installedVersion": null,
+          "availableVersion": null,
+          "releaseNotes": null,
+          "checkedAt": null,
+          "source": null,
+          "noticeRequired": false,
+          "noticeText": null,
+          "reason": "disabled"
+        }
+      }
+    },
+    "check": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 92,
+      "command": [
+        "/usr/local/bin/node",
+        "/Users/praneethreddy/.agents/skills/archify/bin/archify.mjs",
+        "check",
+        "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND/docs/architecture.html",
+        "--require-provenance"
+      ],
+      "receipt": {
+        "ok": true,
+        "file": "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND/docs/architecture.html",
+        "artifact": {
+          "sha256": "092891a3b6db7b532e5efb4e9a4d887133c47d960609e3ca2c5c91850da1944b",
+          "bytes": 837709
+        },
+        "checks": [
+          {
+            "name": "single_svg",
+            "ok": true,
+            "details": [
+              "found 1 <svg> block(s)"
+            ]
+          },
+          {
+            "name": "finite_svg",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "orthogonal_arrows",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "label_route_clearance",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_crossings",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_corridors",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "container_border_runs",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "route_rhythm",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "legend_clearance",
+            "ok": true,
+            "details": []
+          }
+        ],
+        "composition": {
+          "schemaVersion": 1,
+          "profile": "showcase",
+          "status": "pass",
+          "summary": {
+            "errors": 0,
+            "warnings": 0
+          },
+          "metrics": {
+            "properCrossings": 0,
+            "resolvedCrossovers": 1,
+            "ambiguousCorridors": 0,
+            "arrowheadCollisions": 0,
+            "containerBorderRuns": 0,
+            "labelRouteClearanceIssues": 0,
+            "labelCanvasOverflowIssues": 0,
+            "minLabelRouteClearance": 11.8,
+            "desktopReadabilityIssues": 0,
+            "viewportHeightIssues": 0,
+            "minProjectedNodeTextPx": 7.5,
+            "maxBends": 2,
+            "routesOverSuggestedBends": 0,
+            "maxStretch": 1,
+            "routesOverSuggestedStretch": 0,
+            "minSegmentPx": 35,
+            "minInteriorSegmentPx": 35,
+            "shortSegmentCount": 0,
+            "shortEndpointSegmentCount": 0,
+            "shortInteriorSegmentCount": 0,
+            "microSegmentCount": 0
+          },
+          "suggestedLimits": {
+            "bendsPerRelationship": 2,
+            "stretch": 1.35,
+            "segmentPx": 16,
+            "microSegmentPx": 8
+          },
+          "routeReview": {
+            "crossings": [
+              {
+                "left": {
+                  "id": "publish-notify",
+                  "from": "realtime",
+                  "to": "postgres",
+                  "label": "4 · pg_notify",
+                  "collectionIndex": 4,
+                  "artifactIndex": 5
+                },
+                "right": {
+                  "id": "listen-events",
+                  "from": "postgres",
+                  "to": "realtime",
+                  "label": "5 · LISTEN events",
+                  "collectionIndex": 5,
+                  "artifactIndex": 6
+                },
+                "point": [
+                  798,
+                  602
+                ],
+                "sharedNode": "realtime"
+              }
+            ],
+            "detours": []
+          },
+          "leadingSpace": {
+            "measured": true,
+            "emptyTopPx": 40,
+            "emptyTopRatio": 0.056,
+            "occupiedTop": 40,
+            "viewBoxTop": 0,
+            "canvasHeight": 708,
+            "typicalNodeHeight": 90,
+            "reviewSuggested": false
+          },
+          "desktopReadability": {
+            "budgetBasis": "recognized-declared-wide",
+            "readerContract": "declared-wide-v1",
+            "availableDiagramWidth": 1031.25,
+            "actualBudgetPx": 1031.25,
+            "actualReaderWidth": 1061.25,
+            "desiredReaderWidth": 1061.25,
+            "viewportCap": 1376,
+            "limit": "source-size",
+            "requestedTargetPx": 7.5,
+            "requestedTargetMet": true,
+            "hardFloorPx": 6,
+            "hardFloorMet": true,
+            "minimumOwner": {
+              "kind": "edge",
+              "id": "declare-request",
+              "from": "cockpit",
+              "to": "api"
+            },
+            "minimumSourceTextPx": 8,
+            "minimumProjectedTextPx": 7.5,
+            "semanticTextCount": 28
+          },
+          "issues": []
+        },
+        "provenance": "current",
+        "deliveryReceiptId": "45859098-76c2-4cce-9d57-4cf6f0decc9b"
+      }
+    },
+    "browser-check": {
+      "status": "skipped",
+      "exitCode": 2,
+      "durationMs": 12,
+      "command": [
+        "/usr/local/bin/node",
+        "/Users/praneethreddy/.agents/skills/archify/bin/archify.mjs",
+        "browser-check",
+        "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND/docs/architecture.html",
+        "--json",
+        "--require-provenance"
+      ],
+      "execution": "in-process",
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": false,
+        "command": "browser-check",
+        "evidenceKind": "automated-browser",
+        "status": "skipped",
+        "visualReview": "not-requested",
+        "provenance": "current",
+        "deliveryReceiptId": "45859098-76c2-4cce-9d57-4cf6f0decc9b",
+        "artifact": {
+          "path": "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND/docs/architecture.html",
+          "sha256": "092891a3b6db7b532e5efb4e9a4d887133c47d960609e3ca2c5c91850da1944b",
+          "bytes": 837709
+        },
+        "state": {
+          "detail": "read",
+          "motion": "still"
+        },
+        "chrome": {
+          "status": "unavailable",
+          "executable": null
+        },
+        "diagnostics": [
+          {
+            "code": "viewer/chrome-unavailable",
+            "severity": "warning",
+            "message": "No supported browser found. Install Chrome/Chromium (or Microsoft Edge), or set ARCHIFY_CHROME to its executable path.",
+            "subject": {
+              "artifact": "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND/docs/architecture.html"
+            },
+            "evidence": {
+              "executable": null
+            },
+            "supportedFixes": [
+              "set ARCHIFY_CHROME to a Chrome/Chromium executable (or Microsoft Edge) and rerun browser-check"
+            ]
+          }
+        ],
+        "containment": {
+          "status": "skipped",
+          "policy": "fit-or-reader-declared-readable-vertical-scroll",
+          "viewports": []
+        },
+        "themeStates": {
+          "status": "skipped",
+          "viewports": []
+        },
+        "readability": {
+          "status": "skipped",
+          "minimumProjectedNodeTextPx": 6,
+          "viewports": []
+        },
+        "viewerChrome": {
+          "status": "skipped",
+          "viewports": []
+        },
+        "captures": {
+          "status": "not-requested",
+          "screenshots": [],
+          "contactSheet": null
+        },
+        "sidecars": {
+          "receipt": "architecture.browser-check.json",
+          "files": []
+        },
+        "error": "No supported browser found. Install Chrome/Chromium (or Microsoft Edge), or set ARCHIFY_CHROME to its executable path."
+      }
+    }
+  },
+  "browserCheck": {
+    "requested": true,
+    "ran": false
+  },
+  "diagnostics": [
+    {
+      "code": "viewer/chrome-unavailable",
+      "severity": "warning",
+      "message": "No supported browser found. Install Chrome/Chromium (or Microsoft Edge), or set ARCHIFY_CHROME to its executable path.",
+      "subject": {
+        "artifact": "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND/docs/architecture.html"
+      },
+      "evidence": {
+        "executable": null
+      },
+      "supportedFixes": [
+        "set ARCHIFY_CHROME to a Chrome/Chromium executable (or Microsoft Edge) and rerun browser-check"
+      ]
+    }
+  ],
+  "evidence": {
+    "receipt": "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND/docs/architecture.finalize.json",
+    "summaryReceipt": "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND/docs/architecture.finalize-summary.json",
+    "browserCheckReceipt": "/Users/praneethreddy/Freelance Projects /INCIDENTCOMMAND/docs/architecture.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "failedStage": "browser-check",
+  "finishedAt": "2026-10-22T19:52:25.037Z",
+  "durationMs": 439,
+  "update": {
+    "status": "unavailable",
+    "installedVersion": null,
+    "availableVersion": null,
+    "releaseNotes": null,
+    "checkedAt": null,
+    "source": null,
+    "noticeRequired": false,
+    "noticeText": null,
+    "reason": "cache-unavailable"
+  }
+}
