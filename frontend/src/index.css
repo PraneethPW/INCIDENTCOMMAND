@@ -3093,3 +3093,310 @@ button:disabled {
   font-size: 13px;
   line-height: 1.65;
 }
+
+/* Runtime inventory extends the cockpit's restrained cyan command surfaces. */
+.infrastructure-layout {
+  display: grid;
+  gap: 22px;
+}
+.runtime-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 26px;
+  background: radial-gradient(ellipse at top right, #2ec9da12, transparent 65%);
+}
+.runtime-kicker {
+  color: #7fdde7;
+  letter-spacing: 0.16em;
+  font-size: 10px;
+  font-weight: 700;
+}
+.runtime-intro h2 {
+  font-size: clamp(22px, 2.4vw, 30px);
+  margin: 12px 0;
+  font-weight: 500;
+}
+.runtime-intro p,
+.runtime-boundary p {
+  color: #8ba0aa;
+  line-height: 1.7;
+  font-size: 13px;
+  margin: 0;
+}
+.runtime-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+.runtime-metrics article {
+  padding: 20px 24px;
+}
+.runtime-metrics small {
+  color: #8ba0aa;
+  font-size: 11px;
+}
+.runtime-metrics strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 30px;
+  font-weight: 500;
+}
+.runtime-metrics article:last-child strong {
+  color: #ffb175;
+}
+.runtime-toolbar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.runtime-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #253b44;
+  padding: 10px 14px;
+  flex: 1;
+  min-width: 220px;
+  color: #6b8d99;
+  background: #0a151b;
+}
+.runtime-search input {
+  width: 100%;
+  outline: none;
+  border: 0;
+  background: transparent;
+  color: #dfedf1;
+  font-size: 13px;
+}
+.runtime-toolbar select {
+  background: #0a151b;
+  border: 1px solid #253b44;
+  padding: 10px 14px;
+  color: #b7cdd5;
+  font-size: 12px;
+}
+.runtime-sources {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.runtime-sources > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 14px;
+  background: #0b1b20;
+  border: 1px solid #224349;
+  font-size: 11px;
+}
+.runtime-sources span,
+.runtime-sources small {
+  color: #8fa5af;
+}
+.runtime-sources .collector-stale {
+  border-color: #69452b;
+  color: #ffb175;
+}
+.runtime-table-scroll {
+  overflow-x: auto;
+}
+.runtime-inventory table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  min-width: 780px;
+}
+.runtime-inventory th {
+  color: #6d8c98;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  padding: 17px;
+  border-bottom: 1px solid #20353f;
+}
+.runtime-inventory td {
+  font-size: 12px;
+  padding: 18px 17px;
+  border-bottom: 1px solid #1a2b33;
+  max-width: 300px;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+.runtime-inventory td b {
+  font-weight: 500;
+}
+.runtime-inventory td small {
+  display: block;
+  color: #738d98;
+  margin-top: 6px;
+  line-height: 1.5;
+  font-size: 11px;
+}
+.runtime-name {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  text-align: left;
+  color: #dcebf0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.runtime-name > svg {
+  color: #6fc5d4;
+  flex-shrink: 0;
+}
+.runtime-name b {
+  font-size: 13px;
+}
+.runtime-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #92a8b0;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.runtime-state:before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.runtime-state.healthy,
+.runtime-state.completed {
+  color: #88d8b9;
+}
+.runtime-state.down {
+  color: #ff7a72;
+}
+.runtime-state.degraded,
+.runtime-state.stale,
+.runtime-state.missing {
+  color: #ffc288;
+}
+.runtime-incident {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  background: #232020;
+  color: #ffc4a5;
+  padding: 7px 9px;
+  border: 1px solid #5b3c31;
+  cursor: pointer;
+  font-size: 10px;
+}
+.runtime-muted {
+  color: #718893;
+  font-size: 11px;
+}
+.runtime-inventory footer {
+  padding: 16px;
+  color: #78929d;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.runtime-empty {
+  padding: 65px 25px;
+  text-align: center;
+  display: grid;
+  justify-items: center;
+  gap: 15px;
+}
+.runtime-empty > svg {
+  color: #67c3d2;
+}
+.runtime-empty h3 {
+  font-size: 22px;
+  font-weight: 400;
+}
+.runtime-empty p {
+  max-width: 480px;
+  color: #8ba0aa;
+  line-height: 1.8;
+  font-size: 13px;
+}
+.runtime-no-match {
+  padding: 32px;
+  text-align: center;
+  color: #91a6af;
+}
+.runtime-boundary {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 4px;
+}
+.runtime-boundary svg {
+  color: #649ba8;
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.runtime-setup p,
+.runtime-detail p {
+  color: #a6bdc7;
+  line-height: 1.7;
+  font-size: 13px;
+}
+.runtime-setup pre {
+  overflow-x: auto;
+  padding: 18px;
+  font-size: 11px;
+  line-height: 1.9;
+  border: 1px solid #28424c;
+  background: #061015;
+  color: #a1d4dd;
+}
+.runtime-detail {
+  padding: 24px;
+}
+.runtime-detail dl > div {
+  padding: 12px 0;
+  border-bottom: 1px solid #243a43;
+}
+.runtime-detail dt {
+  color: #71929d;
+  font-size: 11px;
+}
+.runtime-detail dd {
+  color: #c9dee5;
+  margin: 7px 0 0;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.runtime-detail button {
+  margin-top: 20px;
+}
+@media (max-width: 1000px) {
+  .runtime-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .runtime-intro {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 20px;
+  }
+  .runtime-toolbar select {
+    flex: 1;
+  }
+  .runtime-metrics article {
+    padding: 16px;
+  }
+}
+.infrastructure-layout > * {
+  min-width: 0;
+}
+.runtime-inventory {
+  overflow: hidden;
+}
+.runtime-sources > div {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}

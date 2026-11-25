@@ -101,3 +101,11 @@ The cockpit includes incident search and filters, persisted responder notes and 
 Health checks serialize per service; incident changes and their timelines commit together. Critical telemetry is deduplicated under concurrent requests. PostgreSQL notifications distribute committed updates across API replicas; Neon uses a direct connection for the listener and pooled connections for application traffic.
 
 See [the operations runbook](docs/OPERATIONS.md) for deployment, database replacement, role permissions, verification, and the current capacity and feature limits. Run the integration suite only against an isolated `incident_test` database. GitHub Actions builds both applications, runs the suite with PostgreSQL, and lints the frontend.
+
+## Docker and Kubernetes tracking
+
+Open **Infrastructure** to connect Docker hosts and Kubernetes namespaces to your existing services. The collector tracks container health, restarts, OOM failures, Pod readiness/crash loops, image pull failures, and workload replica availability. Failures open resource-specific incidents; verified recovery resolves them. The inventory flags missing resources and stale collectors and links directly to incident timelines and AI investigation.
+
+Run `npm run collector` on the monitored host using the setup commands in the UI. The namespace-scoped Kubernetes collector manifest is in `deploy/kubernetes/collector.yaml`. Dockerfiles and `compose.yaml` also support running the application locally in containers, using the existing app-specific environment files.
+
+See [Docker and Kubernetes setup, detection rules, deployment and verification](docs/CONTAINER-TRACKING.md). This adds the monitoring foundation for the proposed Digital Twin lab; executable remediation experiments require a separate isolated worker and are not part of this tracking release.

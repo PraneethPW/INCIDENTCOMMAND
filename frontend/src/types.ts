@@ -1,9 +1,12 @@
 export type Severity = "critical" | "high" | "medium" | "low";
 export type IncidentStatus =
-  "investigating" | "identified" | "monitoring" | "resolved";
+  | "investigating"
+  | "identified"
+  | "monitoring"
+  | "resolved";
 
 export interface AppConfig {
-  capabilities?: { operatorControls: boolean };
+  capabilities?: { operatorControls: boolean; runtimeTracking?: boolean };
   databaseConfigured: boolean;
   databaseReady: boolean;
   sessionConfigured: boolean;
@@ -122,4 +125,43 @@ export interface ServiceHistory {
     message: string;
     at: string;
   }[];
+}
+
+export interface RuntimeSource {
+  id: string;
+  serviceId: string;
+  serviceName: string;
+  platform: "docker" | "kubernetes";
+  cluster: string;
+  observedAt: string;
+  receivedAt: string;
+  intervalSeconds: number;
+  resourceCount: number;
+  stale: boolean;
+}
+export interface RuntimeResource {
+  id: string;
+  serviceId: string;
+  serviceName: string;
+  platform: "docker" | "kubernetes";
+  cluster: string;
+  namespace: string;
+  kind: string;
+  name: string;
+  uid: string;
+  status: "healthy" | "degraded" | "down" | "completed" | "unknown";
+  reason: string;
+  image: string;
+  restartCount: number;
+  ready: number | null;
+  desired: number | null;
+  present: boolean;
+  observedAt: string;
+  stale: boolean;
+  incidentId: string | null;
+  incidentCode: string | null;
+}
+export interface Infrastructure {
+  sources: RuntimeSource[];
+  resources: RuntimeResource[];
 }

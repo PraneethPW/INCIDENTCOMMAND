@@ -1,3 +1,4 @@
+import { InfrastructurePanel } from "./Infrastructure";
 import {
   Dialog,
   ServiceControls,
@@ -7,6 +8,7 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Activity,
+  Boxes,
   AlertCircle,
   ArrowLeft,
   BellRing,
@@ -63,6 +65,7 @@ import type {
   Analysis,
   AppConfig,
   Incident,
+  Infrastructure,
   IncidentStatus,
   LiveEvent,
   Overview,
@@ -779,7 +782,13 @@ function AnalysisResult({
   );
 }
 
-type View = "overview" | "incidents" | "intelligence" | "services" | "team";
+type View =
+  | "overview"
+  | "incidents"
+  | "intelligence"
+  | "services"
+  | "team"
+  | "infrastructure";
 
 function CommandCenter({
   user,
@@ -796,6 +805,10 @@ function CommandCenter({
   const [overview, setOverview] = useState<Overview>(emptyOverview);
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [infrastructure, setInfrastructure] = useState<Infrastructure>({
+    sources: [],
+    resources: [],
+  });
   const [selected, setSelected] = useState<Incident | null>(null);
   const [activity, setActivity] = useState<LiveEvent[]>([]);
   const [connected, setConnected] = useState(false);
@@ -813,6 +826,7 @@ function CommandCenter({
   const [checking, setChecking] = useState<string[]>([]);
   const [statusBusy, setStatusBusy] = useState(false);
   const operatorControlsReady = Boolean(config.capabilities?.operatorControls);
+  const runtimeTrackingReady = Boolean(config.capabilities?.runtimeTracking);
   const canWrite = user.role !== "viewer";
   const canManage = ["owner", "admin"].includes(user.role);
   const filteredIncidents = incidents.filter(
@@ -830,15 +844,20 @@ function CommandCenter({
   const refresh = useCallback(async () => {
     const version = ++refreshVersion.current;
     try {
-      const [nextOverview, nextIncidents, nextServices] = await Promise.all([
-        api.overview(),
-        api.incidents(),
-        api.services(),
-      ]);
+      const [nextOverview, nextIncidents, nextServices, nextInfrastructure] =
+        await Promise.all([
+          api.overview(),
+          api.incidents(),
+          api.services(),
+          runtimeTrackingReady
+            ? api.infrastructure()
+            : Promise.resolve({ sources: [], resources: [] }),
+        ]);
       if (version !== refreshVersion.current) return;
       setOverview(nextOverview);
       setIncidents(nextIncidents);
       setServices(nextServices);
+      setInfrastructure(nextInfrastructure);
       setError("");
       const id = selectedId.current || nextIncidents[0]?.id;
       if (id) {
@@ -867,7 +886,7 @@ function CommandCenter({
     } finally {
       if (version === refreshVersion.current) setLoading(false);
     }
-  }, [onWorkspaceChanged]);
+  }, [onWorkspaceChanged, runtimeTrackingReady]);
   // oxlint-disable-next-line react/set-state-in-effect -- initial state comes from authenticated API resources.
   useEffect(() => {
     void Promise.resolve().then(refresh);
@@ -1091,6 +1110,14 @@ function CommandCenter({
           >
             <Network /> Services
           </button>
+          {config.capabilities?.runtimeTracking && (
+            <button
+              className={view === "infrastructure" ? "active" : ""}
+              onClick={() => setView("infrastructure")}
+            >
+              <Boxes /> Infrastructure
+            </button>
+          )}
           {operatorControlsReady && (
             <>
               <button
@@ -1136,9 +1163,11 @@ function CommandCenter({
                   ? "Incident operations"
                   : view === "intelligence"
                     ? "Root-cause intelligence"
-                    : view === "team"
-                      ? "Team & workspace access"
-                      : "Service command graph"}
+                    : view === "infrastructure"
+                      ? "Container & cluster operations"
+                      : view === "team"
+                        ? "Team & workspace access"
+                        : "Service command graph"}
             </h1>
           </div>
           <div className="command-actions">
@@ -1188,6 +1217,25 @@ function CommandCenter({
         )}
         {operatorControlsReady && view === "team" && (
           <TeamPanel user={user} onWorkspaceChanged={onWorkspaceChanged} />
+        )}
+        {view === "infrastructure" && (
+          <InfrastructurePanel
+            data={infrastructure}
+            services={services}
+            user={user}
+            onConnectService={() => setModal("service")}
+            onOpenIncident={async (id) => {
+              try {
+                await selectIncident(await api.incident(id));
+              } catch (cause) {
+                setError(
+                  cause instanceof Error
+                    ? cause.message
+                    : "Unable to load incident",
+                );
+              }
+            }}
+          />
         )}
         {showActivity && (
           <Dialog
@@ -1635,8 +1683,8 @@ function CommandCenter({
                     <div>
                       <b>Evidence boundary</b>
                       <span>
-                        Incident timeline, recent service checks, and telemetry
-                        for {selected.service}.
+                        Incident timeline, recent service checks, runtime
+                        observations, and telemetry for {selected.service}.
                       </span>
                     </div>
                   </div>
