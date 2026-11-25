@@ -46,6 +46,12 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  infrastructure: async () =>
+    (
+      await request<{ data: import("./types").Infrastructure }>(
+        "/api/infrastructure",
+      )
+    ).data,
   config: async () => (await request<{ data: AppConfig }>("/api/config")).data,
   me: async () => (await request<{ data: User }>("/api/auth/me")).data,
   register: async (body: {

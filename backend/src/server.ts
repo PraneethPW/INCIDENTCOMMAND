@@ -25,6 +25,7 @@ import {
   requireAdmin,
 } from "./security.js";
 import { workspace } from "./workspace.js";
+import { runtime } from "./runtime.js";
 
 export const app = express();
 const port = Number(process.env.PORT || 8787);
@@ -81,13 +82,13 @@ const incidentSelect = `
   SELECT i.id, i.code, i.title, i.service, i.service_id AS "serviceId", i.severity, i.status, i.region,
     i.source, i.description, i.impact, i.latency_ms AS "latencyMs", i.error_rate::float AS "errorRate",
     i.started_at AS "startedAt", i.acknowledged_at AS "acknowledgedAt", i.resolved_at AS "resolvedAt",
-    i.updated_at AS "updatedAt", u.name AS "assigneeName", i.assigned_to AS "assignedTo"
+    i.updated_at AS "updatedAt", i.runtime_resource_id AS "runtimeResourceId", u.name AS "assigneeName", i.assigned_to AS "assignedTo"
   FROM incidents i LEFT JOIN users u ON u.id=i.assigned_to`;
 
 app.get("/api/config", async (_req, res) => {
   res.json({
     data: {
-      capabilities: { operatorControls: true },
+      capabilities: { operatorControls: true, runtimeTracking: true },
       databaseConfigured: Boolean(process.env.DATABASE_URL),
       databaseReady: await databaseReady(),
       sessionConfigured: Boolean(
@@ -235,6 +236,8 @@ app.use("/api", (req, res, next) =>
     ? next()
     : requireOperator(req, res, next),
 );
+
+app.use("/api", runtime);
 
 app.get("/api/overview", async (req, res) => {
   const db = requirePool();
@@ -438,7 +441,7 @@ app.post(
     );
     if (!incident.rowCount)
       return res.status(404).json({ error: "Incident not found" });
-    const [events, checks, telemetry] = await Promise.all([
+    const [events, checks, telemetry, runtimeEvidence] = await Promise.all([
       db.query(
         `SELECT event_type,message,metadata,created_at FROM incident_events WHERE organization_id=$1 AND incident_id=$2 AND event_type<>'ai_analysis' ORDER BY created_at DESC LIMIT 50`,
         [org, req.params.id],
@@ -455,12 +458,21 @@ app.post(
             [org, incident.rows[0].serviceId],
           )
         : Promise.resolve({ rows: [] }),
+      incident.rows[0].runtimeResourceId
+        ? db.query(
+            `SELECT r.uid,r.name,r.kind,r.namespace,r.status,r.reason,r.image,r.restart_count,r.ready,r.desired,r.present,r.observed_at,rs.platform,rs.cluster,rs.interval_seconds,
+            (NOW()-rs.observed_at > make_interval(secs => GREATEST(90,rs.interval_seconds*3))) AS stale
+            FROM runtime_resources r JOIN runtime_sources rs ON rs.id=r.source_id WHERE r.organization_id=$1 AND r.id=$2`,
+            [org, incident.rows[0].runtimeResourceId],
+          )
+        : Promise.resolve({ rows: [] }),
     ]);
     const context = {
       incident: incident.rows[0],
       timeline: events.rows,
       healthChecks: checks.rows,
       telemetry: telemetry.rows,
+      runtime: runtimeEvidence.rows,
     };
     const contextHash = createHash("sha256")
       .update(JSON.stringify(context))

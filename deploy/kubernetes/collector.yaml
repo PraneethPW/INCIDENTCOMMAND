@@ -1,0 +1,100 @@
+# Change namespace, image, service ID, API URL, and cluster identity before applying.
+# Build: docker build -f scripts/runtime/Dockerfile -t YOUR_REGISTRY/incident-collector:VERSION .
+# Push that immutable tag. Choose KUBECTL_VERSION within one minor of your API server.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: incident-collector
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: incident-collector
+  namespace: default
+rules:
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list]
+  - apiGroups: [apps]
+    resources: [deployments, statefulsets, daemonsets]
+    verbs: [get, list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: incident-collector
+  namespace: default
+subjects:
+  - kind: ServiceAccount
+    name: incident-collector
+    namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: incident-collector
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: incident-collector
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: incident-collector
+  template:
+    metadata:
+      labels:
+        app: incident-collector
+    spec:
+      serviceAccountName: incident-collector
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: collector
+          image: YOUR_REGISTRY/incident-collector:VERSION
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          env:
+            - name: RUNTIME_PLATFORM
+              value: kubernetes
+            - name: RUNTIME_CLUSTER
+              value: cluster-01-default
+            - name: KUBE_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: INCIDENT_API_URL
+              value: https://incident-command-ai.vercel.app
+            - name: INCIDENT_SERVICE_ID
+              value: REPLACE_WITH_SERVICE_UUID
+            - name: INCIDENT_INGEST_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: incident-collector
+                  key: ingest-key
+            - name: RUNTIME_INTERVAL_SECONDS
+              value: "30"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 96Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          volumeMounts:
+            - name: scratch
+              mountPath: /tmp
+      volumes:
+        - name: scratch
+          emptyDir:
+            sizeLimit: 16Mi

@@ -141,3 +141,31 @@ CREATE TABLE IF NOT EXISTS workspace_invites (
   used_at TIMESTAMPTZ
 );
 CREATE INDEX IF NOT EXISTS invites_org_idx ON workspace_invites(organization_id);
+
+-- Bounded, sanitized inventories from service-key-authenticated runtime collectors.
+CREATE TABLE IF NOT EXISTS runtime_sources (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  service_id UUID NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+  platform TEXT NOT NULL CHECK (platform IN ('docker','kubernetes')),
+  cluster TEXT NOT NULL,
+  observed_at TIMESTAMPTZ NOT NULL,
+  received_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  interval_seconds INTEGER NOT NULL CHECK(interval_seconds BETWEEN 15 AND 300),
+  resource_count INTEGER NOT NULL,
+  UNIQUE (service_id, platform, cluster)
+);
+CREATE TABLE IF NOT EXISTS runtime_resources (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  service_id UUID NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+  source_id UUID NOT NULL REFERENCES runtime_sources(id) ON DELETE CASCADE,
+  uid TEXT NOT NULL, name TEXT NOT NULL, namespace TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('healthy','degraded','down','completed','unknown')),
+  reason TEXT NOT NULL, image TEXT NOT NULL DEFAULT '', restart_count INTEGER NOT NULL DEFAULT 0,
+  ready INTEGER, desired INTEGER, present BOOLEAN NOT NULL DEFAULT TRUE, observed_at TIMESTAMPTZ NOT NULL,
+  UNIQUE (source_id, uid)
+);
+ALTER TABLE incidents ADD COLUMN IF NOT EXISTS runtime_resource_id UUID REFERENCES runtime_resources(id) ON DELETE SET NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS runtime_open_incident_idx ON incidents(runtime_resource_id) WHERE runtime_resource_id IS NOT NULL AND status<>'resolved';
+CREATE INDEX IF NOT EXISTS runtime_resources_org_idx ON runtime_resources(organization_id, source_id);

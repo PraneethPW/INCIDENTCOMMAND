@@ -22,9 +22,22 @@ jobs:
             frontend/package-lock.json
       - run: npm ci --prefix backend && npm ci --prefix frontend
       - run: npm run build --prefix backend && npm run build --prefix frontend
+      - run: npm run test:collector
       - run: npm test --prefix backend
         env:
           NODE_ENV: test
           DATABASE_URL: postgresql://postgres:test@localhost:5432/incident_test
           SESSION_SECRET: integration-test-secret-at-least-32-characters
       - run: npm run lint --prefix frontend
+
+  container-builds:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t incident-command-backend:test backend
+      - run: docker build -t incident-command-frontend:test frontend
+      - run: docker build -f scripts/runtime/Dockerfile -t incident-command-kubernetes-collector:test .
+      - name: Validate Compose without adding a root environment file
+        run: |
+          cp backend/.env.example backend/.env
+          docker compose config --quiet

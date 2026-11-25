@@ -497,3 +497,203 @@ test("AI uses configured model, caches persisted evidence, and preserves stale a
     else process.env.OPENROUTER_MODEL = previousModel;
   }
 });
+
+test("runtime snapshots authenticate, isolate, deduplicate and verify recovery", async () => {
+  const svc = (
+    await call("/api/services", owner.cookie, { name: "Runtime test service" })
+  ).data;
+  const at = Date.now() - 30_000;
+  const resource = {
+    uid: "container-01",
+    name: "orders",
+    kind: "Container",
+    status: "down",
+    reason: "OOMKilled",
+    image: "sha256:123",
+    restartCount: 4,
+  };
+  const snapshot = (n: number, resources: unknown[] = [resource]) => ({
+    platform: "docker",
+    cluster: "test-host",
+    observedAt: new Date(at + n * 1000).toISOString(),
+    intervalSeconds: 30,
+    resources,
+  });
+  const ingest = (body: unknown, key = svc.ingestKey) =>
+    call(`/api/ingest/${svc.id}/runtime`, "", body, "POST", {
+      "x-ingest-key": key,
+    });
+  assert.equal((await ingest(snapshot(0), "wrong")).status, 403);
+  assert.equal(
+    (await call(`/api/ingest/${svc.id}/runtime`, "", snapshot(0))).status,
+    401,
+  );
+  const replies = await Promise.all(
+    Array.from({ length: 5 }, () => ingest(snapshot(1))),
+  );
+  assert.ok(replies.every((r) => r.status === 202));
+  assert.equal(replies.filter((r) => !r.payload.ignored).length, 1);
+  const inventory = (await call("/api/infrastructure", owner.cookie)).data;
+  assert.equal(inventory.resources.length, 1);
+  assert.equal(inventory.resources[0].status, "down");
+  const incidentId = inventory.resources[0].incidentId;
+  assert.ok(incidentId);
+  assert.equal(
+    (await call("/api/infrastructure", other.cookie)).data.resources.length,
+    0,
+  );
+  assert.equal((await call("/api/infrastructure")).status, 401);
+  assert.equal(
+    (
+      await ingest(
+        snapshot(0, [{ ...resource, status: "healthy", reason: "Running" }]),
+      )
+    ).payload.ignored,
+    true,
+  );
+  assert.equal(
+    (await call(`/api/incidents/${incidentId}`, owner.cookie)).data.status,
+    "investigating",
+  );
+  await ingest(snapshot(2, []));
+  assert.equal(
+    (await call("/api/infrastructure", owner.cookie)).data.resources[0].present,
+    false,
+  );
+  assert.equal(
+    (await call(`/api/incidents/${incidentId}`, owner.cookie)).data.status,
+    "investigating",
+  );
+  await ingest(
+    snapshot(3, [{ ...resource, status: "unknown", reason: "Starting" }]),
+  );
+  assert.equal(
+    (await call(`/api/incidents/${incidentId}`, owner.cookie)).data.status,
+    "investigating",
+  );
+  await ingest(
+    snapshot(4, [
+      { ...resource, status: "healthy", reason: "Docker health: healthy" },
+    ]),
+  );
+  const recovered = (await call(`/api/incidents/${incidentId}`, owner.cookie))
+    .data;
+  assert.equal(recovered.status, "resolved");
+  assert.ok(
+    recovered.events.some(
+      (e: { eventType: string }) => e.eventType === "resolved",
+    ),
+  );
+  await ingest(snapshot(5));
+  const incidents = await db.query(
+    "SELECT id FROM incidents WHERE service_id=$1 AND status<>'resolved'",
+    [svc.id],
+  );
+  assert.equal(incidents.rowCount, 1);
+  await db.query(
+    "UPDATE runtime_sources SET observed_at=NOW()-INTERVAL '5 minutes' WHERE service_id=$1",
+    [svc.id],
+  );
+  assert.equal(
+    (await call("/api/infrastructure", owner.cookie)).data.sources.find(
+      (s: { serviceId: string }) => s.serviceId === svc.id,
+    ).stale,
+    true,
+  );
+  assert.equal(
+    (await ingest({ ...snapshot(6), resources: [resource, resource] })).status,
+    400,
+  );
+  assert.equal(
+    (
+      await ingest({
+        ...snapshot(6),
+        observedAt: new Date(Date.now() + 3600_000).toISOString(),
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (await ingest(snapshot(6, [{ ...resource, env: { PASSWORD: "reject" } }])))
+      .status,
+    400,
+  );
+  assert.equal(
+    (await ingest({ ...snapshot(6), platform: "kubernetes" })).status,
+    400,
+  );
+  const kubernetes = {
+    ...snapshot(7, [
+      {
+        ...resource,
+        uid: "pod-01",
+        kind: "Pod",
+        namespace: "orders",
+        reason: "CrashLoopBackOff",
+      },
+    ]),
+    platform: "kubernetes",
+    cluster: "test-cluster-orders",
+  };
+  assert.equal((await ingest(kubernetes)).status, 202);
+  const kube = (
+    await call("/api/infrastructure", owner.cookie)
+  ).data.resources.find(
+    (r: { platform: string }) => r.platform === "kubernetes",
+  );
+  assert.ok(kube.incidentId);
+  const event = (await call(`/api/incidents/${kube.incidentId}`, owner.cookie))
+    .data.events[0];
+  assert.equal(event.metadata.namespace, "orders");
+  const originalFetch = globalThis.fetch;
+  const savedKey = process.env.OPENROUTER_API_KEY;
+  process.env.OPENROUTER_API_KEY = "runtime-test-provider";
+  globalThis.fetch = async (input, init) => {
+    if (String(input) !== "https://openrouter.ai/api/v1/chat/completions")
+      return originalFetch(input, init);
+    const request = JSON.parse(String(init?.body));
+    const context = JSON.parse(request.messages[1].content);
+    assert.equal(context.runtime[0].uid, "pod-01");
+    assert.equal(context.runtime[0].platform, "kubernetes");
+    assert.equal(context.runtime[0].namespace, "orders");
+    assert.ok(!JSON.stringify(context).includes(svc.ingestKey));
+    return new Response(
+      JSON.stringify({
+        model: "test/runtime",
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                summary: "Runtime evidence received",
+                probableCause: "Crash loop requires investigation",
+                confidence: 30,
+                evidence: ["Pod CrashLoopBackOff"],
+                recommendations: ["Verify pod image and resource limits"],
+              }),
+            },
+          },
+        ],
+      }),
+      { status: 200 },
+    );
+  };
+  try {
+    assert.equal(
+      (
+        await call(
+          `/api/incidents/${kube.incidentId}/analyze`,
+          owner.cookie,
+          {},
+        )
+      ).status,
+      200,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (savedKey === undefined) delete process.env.OPENROUTER_API_KEY;
+    else process.env.OPENROUTER_API_KEY = savedKey;
+  }
+
+  await call(`/api/services/${svc.id}/rotate-key`, owner.cookie, {});
+  assert.equal((await ingest(snapshot(8))).status, 403);
+});

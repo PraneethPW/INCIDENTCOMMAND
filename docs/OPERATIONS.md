@@ -59,6 +59,10 @@ Owners and admins can create single-use invitation codes that expire after 48 ho
 - Responder: health checks, incident operations, analysis, and ingest commands.
 - Viewer: read-only workspace access; ingest keys and mutation controls are restricted.
 
+## Container and Kubernetes tracking
+
+See [the runtime tracking guide](CONTAINER-TRACKING.md) for collectors, namespace permissions, incident rules, Docker Compose, migration and validation. Apply `schema.sql` before deploying the runtime-tracking backend; source heartbeats and inventories are organization-scoped.
+
 ## Capacity and troubleshooting
 
 - Continuous monitoring uses database compute. The original production outage was a database quota exhaustion; replacing a connection does not remove the need for capacity monitoring.
