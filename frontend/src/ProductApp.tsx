@@ -731,11 +731,6 @@ function AnalysisResult({
     );
   return (
     <div className="analysis-result">
-      {analysis.warning && (
-        <div className="analysis-warning">
-          <AlertCircle /> <span>{analysis.warning}</span>
-        </div>
-      )}
       <div className="analysis-score">
         <div style={{ "--score": `${analysis.confidence}%` } as CSSProperties}>
           <strong>{analysis.confidence}%</strong>
@@ -968,6 +963,10 @@ function CommandCenter({
     setError("");
     try {
       const result = await api.analyze(incidentId);
+      if (result.stale)
+        setAnalysisError(
+          result.warning || "The AI provider is unavailable. Showing the last saved analysis; newer evidence has not been analyzed.",
+        );
       setSelected((current) =>
         current?.id === incidentId ? { ...current, analysis: result } : current,
       );
@@ -1753,7 +1752,9 @@ function CommandCenter({
               )}
               {selected ? (
                 <AnalysisResult
-                  analysis={selected.analysis}
+                  analysis={analysisError && selected.analysis
+                    ? { ...selected.analysis, stale: true }
+                    : selected.analysis}
                   loading={analysisLoading}
                   aiConfigured={config.aiConfigured}
                   canAnalyze={canWrite}
