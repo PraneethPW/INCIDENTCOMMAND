@@ -42,7 +42,7 @@
       {"path":"backend/src/security.ts","line":17,"end_line":60,"label":"Public DNS validation and HTTP GET"},
       {"path":"backend/src/monitor.ts","line":38,"end_line":67,"label":"Configured URL and expected status"}
     ]},
-    {"id":"postgres","type":"database","label":"PostgreSQL","sublabel":"Durable state + NOTIFY","tag":"DATABASE_URL · Neon supported","pos":[850,550],"size":[210,90],"sources":[
+    {"id":"postgres","type":"database","label":"PostgreSQL","sublabel":"Durable state + NOTIFY","tag":"DATABASE_URL · Supabase supported","pos":[850,550],"size":[210,90],"sources":[
       {"path":"backend/src/database.ts","line":4,"end_line":65,"label":"pg pool and transaction helper"},
       {"path":"backend/schema.sql","line":3,"end_line":116,"label":"Organizations, incidents and signals"},
       {"path":"backend/src/realtime.ts","line":45,"end_line":89,"label":"Dedicated LISTEN connection"}
@@ -93,7 +93,7 @@
     {"dot":"slate","title":"Evidence scope and unknowns","items":[
       "Source-backed runtime overview at f1a3eb2. Node source references link to the pinned commit. Arrow labels describe observed calls; external senders and health targets are contracts, with actual deployments unknown.",
       "api.ts:22–34 supports VITE_API_URL or same-origin /api. vite.config.ts:10–12 proxies development traffic to localhost:8787. vercel.json:3–7 configures an HTTPS rewrite to Railway; whether that deployment is active is unverified.",
-      "PostgreSQL is required. Neon is supported by the listener's pooler-host rewrite, but the deployed database host and replica count are unknown. UI decoration, build tooling and individual CRUD endpoints are grouped rather than expanded.",
+      "PostgreSQL is required. Supabase uses a session-capable database connection for LISTEN, but the deployed database host and replica count are unknown. UI decoration, build tooling and individual CRUD endpoints are grouped rather than expanded.",
       "Existing uncommitted frontend/package-lock.json changes were excluded from source evidence. No application code was changed to create this diagram."
     ]}
   ]

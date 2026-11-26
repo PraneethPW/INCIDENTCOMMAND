@@ -3075,7 +3075,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
     @media print {
       /* Force the FULL light palette — including component fills/strokes and
-         lane/arrow colors — so printing from dark theme doesn't put neon
+         lane/arrow colors — so printing from dark theme doesn't put bright colors
          strokes and translucent dark fills on white paper. */
       :root, [data-theme="dark"], [data-theme="light"] {
         --bg: #ffffff;
@@ -5380,8 +5380,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="fine" x="955" y="112" class="t-external" font-size="7" text-anchor="middle">Actual target unknown</text>
         </g>
 
-        <g id="node-postgres" data-node-id="postgres" data-node-label="PostgreSQL" tabindex="0" role="button" aria-label="Focus PostgreSQL, Durable state + NOTIFY, Architecture component" aria-pressed="false" data-node-kind="database" data-node-sublabel="Durable state + NOTIFY" data-node-tag="DATABASE_URL · Neon supported" data-node-context="Architecture component">
-          <title>PostgreSQL · Durable state + NOTIFY · Architecture component · DATABASE_URL · Neon supported</title>
+        <g id="node-postgres" data-node-id="postgres" data-node-label="PostgreSQL" tabindex="0" role="button" aria-label="Focus PostgreSQL, Durable state + NOTIFY, Architecture component" aria-pressed="false" data-node-kind="database" data-node-sublabel="Durable state + NOTIFY" data-node-tag="DATABASE_URL · Supabase supported" data-node-context="Architecture component">
+          <title>PostgreSQL · Durable state + NOTIFY · Architecture component · DATABASE_URL · Supabase supported</title>
           <rect x="850" y="550" width="210" height="90" rx="8" class="c-mask"/>
           <rect x="850" y="550" width="210" height="90" rx="8" class="c-database" data-animate="node" style="--step:3" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(856 556) scale(0.6875)">
@@ -5390,7 +5390,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           </g>
           <text data-node-label="" data-detail-anchor="" x="955" y="593" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">PostgreSQL</text>
         <text data-detail="context" x="955" y="609" class="t-muted" font-size="9" text-anchor="middle">Durable state + NOTIFY</text>
-        <text data-detail="fine" x="955" y="632" class="t-database" font-size="7" text-anchor="middle">DATABASE_URL · Neon supported</text>
+        <text data-detail="fine" x="955" y="632" class="t-database" font-size="7" text-anchor="middle">DATABASE_URL · Supabase supported</text>
         </g>
 
         <g id="node-realtime" data-node-id="realtime" data-node-label="Realtime / SSE" tabindex="0" role="button" aria-label="Focus Realtime / SSE, In-process organization fan-out, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-sublabel="In-process organization fan-out" data-node-tag="PostgreSQL LISTEN connection" data-node-context="Architecture component">
@@ -5713,7 +5713,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <ul>
           <li>Source-backed runtime overview at f1a3eb2. Node source references link to the pinned commit. Arrow labels describe observed calls; external senders and health targets are contracts, with actual deployments unknown.</li>
           <li>api.ts:22–34 supports VITE_API_URL or same-origin /api. vite.config.ts:10–12 proxies development traffic to localhost:8787. vercel.json:3–7 configures an HTTPS rewrite to Railway; whether that deployment is active is unverified.</li>
-          <li>PostgreSQL is required. Neon is supported by the listener&#39;s pooler-host rewrite, but the deployed database host and replica count are unknown. UI decoration, build tooling and individual CRUD endpoints are grouped rather than expanded.</li>
+          <li>PostgreSQL is required. Supabase uses a session-capable database connection for LISTEN, but the deployed database host and replica count are unknown. UI decoration, build tooling and individual CRUD endpoints are grouped rather than expanded.</li>
           <li>Existing uncommitted frontend/package-lock.json changes were excluded from source evidence. No application code was changed to create this diagram.</li>
         </ul>
       </div>

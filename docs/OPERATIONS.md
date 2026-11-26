@@ -22,7 +22,7 @@ Railway settings:
 - `SESSION_SECRET`: at least 32 random characters; retain it across restarts
 - `OPENROUTER_API_KEY` and `OPENROUTER_MODEL`: the configured provider and model
 - Optional `OPENROUTER_FALLBACK_MODELS`: comma-separated fallback model IDs; at most two total attempts run
-- Optional `DATABASE_LISTEN_URL`: a direct, session-capable PostgreSQL connection. For Neon, the application derives it by removing `-pooler` from the hostname.
+- Optional `DATABASE_LISTEN_URL`: a direct, session-capable PostgreSQL connection. Use the Supabase Session pooler on port 5432 for both URLs, or a direct session-capable connection. Port 6543 cannot carry the LISTEN session.
 
 The frontend checks the backend capability marker before showing team, service management, and collaboration controls. During a delayed backend rollout it keeps the existing workflow available and shows an update-pending notice. Refresh the cockpit after the backend release completes.
 

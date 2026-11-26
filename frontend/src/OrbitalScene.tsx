@@ -16,8 +16,8 @@ function OrbitalCore() {
       <mesh>
         <icosahedronGeometry args={[1.45, 3]} />
         <meshStandardMaterial
-          color="#06131b"
-          emissive="#0ec5df"
+          color="#1b1715"
+          emissive="#df620e"
           emissiveIntensity={0.28}
           roughness={0.28}
           metalness={0.82}
@@ -31,13 +31,13 @@ function OrbitalCore() {
         >
           <torusGeometry args={[radius, 0.012, 12, 110]} />
           <meshBasicMaterial
-            color={index === 1 ? "#f6a84b" : "#51d9ed"}
+            color={index === 1 ? "#f6a84b" : "#ed8f51"}
             transparent
             opacity={0.52 - index * 0.1}
           />
         </mesh>
       ))}
-      <Sparkles count={58} scale={5.4} size={2.2} speed={0.2} color="#8ae7f5" />
+      <Sparkles count={58} scale={5.4} size={2.2} speed={0.2} color="#f5b58a" />
     </group>
   );
 }
@@ -46,7 +46,7 @@ export default function OrbitalScene() {
   return (
     <Canvas camera={{ position: [0, 0, 6.8], fov: 42 }} dpr={[1, 1.5]}>
       <ambientLight intensity={0.5} />
-      <pointLight position={[4, 3, 4]} color="#48d9ef" intensity={18} />
+      <pointLight position={[4, 3, 4]} color="#ef8b48" intensity={18} />
       <pointLight position={[-4, -2, 3]} color="#ff9f43" intensity={10} />
       <Suspense fallback={null}>
         <Float speed={1.2} rotationIntensity={0.25} floatIntensity={0.35}>

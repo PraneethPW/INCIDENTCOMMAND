@@ -697,3 +697,61 @@ test("runtime snapshots authenticate, isolate, deduplicate and verify recovery",
   await call(`/api/services/${svc.id}/rotate-key`, owner.cookie, {});
   assert.equal((await ingest(snapshot(8))).status, 403);
 });
+
+test("request boundaries return safe JSON and preserve explicitly allowed cross-origin clients", async () => {
+  const invalid = await fetch(base + "/api/incidents", {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: owner.cookie },
+    body: '{"password":"do-not-echo"',
+  });
+  assert.equal(invalid.status, 400);
+  assert.deepEqual(await invalid.json(), {
+    error: "Request body must be valid JSON",
+  });
+  const large = await fetch(base + "/api/incidents", {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: owner.cookie },
+    body: JSON.stringify({ description: "x".repeat(1_100_000) }),
+  });
+  assert.equal(large.status, 413);
+  assert.equal((await large.json()).error, "Request body is too large");
+  assert.equal((await call("/api/missing-route", owner.cookie)).status, 404);
+  assert.equal(
+    (
+      await call(
+        "/api/workspaces/switch",
+        owner.cookie,
+        { organizationId: owner.org },
+        "POST",
+        { "sec-fetch-site": "cross-site" },
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await call(
+        "/api/workspaces/switch",
+        owner.cookie,
+        { organizationId: owner.org },
+        "POST",
+        { "sec-fetch-site": "cross-site", origin: "http://localhost:5173" },
+      )
+    ).status,
+    200,
+  );
+});
+
+test("readiness rejects an incomplete application schema", async () => {
+  await db.query(
+    "ALTER TABLE telemetry_events RENAME TO telemetry_events_readiness_test",
+  );
+  try {
+    assert.equal((await call("/api/health")).status, 503);
+  } finally {
+    await db.query(
+      "ALTER TABLE telemetry_events_readiness_test RENAME TO telemetry_events",
+    );
+  }
+  assert.equal((await call("/api/health")).status, 200);
+});

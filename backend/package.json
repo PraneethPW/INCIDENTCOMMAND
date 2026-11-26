@@ -10,7 +10,8 @@
     "db:setup": "tsx src/setup-db.ts",
     "smoke": "tsx src/smoke.ts",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test test/*.ts"
+    "test": "tsx --test test/*.ts",
+    "db:migrate": "tsx src/migrate-database.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

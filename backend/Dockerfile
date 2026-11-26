@@ -12,6 +12,7 @@ WORKDIR /app
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist
 COPY --chown=node:node package.json schema.sql ./
+COPY --chown=node:node certs ./certs
 USER node
 EXPOSE 8787
 CMD ["node", "dist/server.js"]

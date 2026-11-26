@@ -1,3 +1,4 @@
+import { MotionToggle } from "./MotionPreferences";
 import { InfrastructurePanel } from "./Infrastructure";
 import {
   Dialog,
@@ -83,8 +84,8 @@ const severityLabel: Record<Severity, string> = {
 const severityColors: Record<Severity, string> = {
   critical: "#ff5f57",
   high: "#ffad55",
-  medium: "#43d7e8",
-  low: "#58727b",
+  medium: "#e88543",
+  low: "#7b6658",
 };
 const emptyOverview: Overview = {
   metrics: {
@@ -147,13 +148,13 @@ function SetupRequired({
   const items = [
     {
       ok: config.databaseConfigured,
-      label: "Neon connection string",
+      label: "PostgreSQL connection string",
       value: "DATABASE_URL",
     },
     {
       ok: config.databaseReady,
-      label: "Database schema",
-      value: "npm run db:setup --prefix backend",
+      label: "Database availability",
+      value: "Check connection, capacity, and pending schema migrations",
     },
     {
       ok: config.sessionConfigured,
@@ -191,8 +192,8 @@ function SetupRequired({
         <span className="access-kicker">BACKEND CONFIGURATION</span>
         <h2>Command center is waiting</h2>
         <p>
-          Configure these values in <code>backend/.env</code>, initialize Neon,
-          then restart the application.
+          Configure these values in <code>backend/.env</code>, initialize the
+          database, then restart the application.
         </p>
         <div className="setup-list">
           {items.map((item) => (
@@ -1140,14 +1141,22 @@ function CommandCenter({
             {config.aiConfigured ? config.model : "AI key not configured"}
           </span>
           <span>
-            <i /> Neon persistence active
+            <i /> {config.databaseProvider || "PostgreSQL"} persistence active
           </span>
         </div>
+        <MotionToggle />
         <button className="return-button logout" onClick={onLogout}>
           <LogOut /> Sign out
         </button>
       </aside>
-      <main className="dashboard-main">
+      <motion.main
+        id="main-content"
+        tabIndex={-1}
+        className="dashboard-main"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+      >
         <header className="command-bar">
           <div>
             <div className="eyebrow">
@@ -1351,7 +1360,7 @@ function CommandCenter({
                     <small>INCIDENT PRESSURE</small>
                     <h2>Last 24 hours</h2>
                   </div>
-                  <span className="data-source">NEON · LIVE</span>
+                  <span className="data-source">SUPABASE · LIVE</span>
                 </div>
                 {overview.trends.length ? (
                   <div className="chart-wrap">
@@ -1367,18 +1376,18 @@ function CommandCenter({
                           >
                             <stop
                               offset="0"
-                              stopColor="#46d8eb"
+                              stopColor="#eb8846"
                               stopOpacity={0.34}
                             />
                             <stop
                               offset="1"
-                              stopColor="#46d8eb"
+                              stopColor="#eb8846"
                               stopOpacity={0}
                             />
                           </linearGradient>
                         </defs>
                         <CartesianGrid
-                          stroke="#15303c"
+                          stroke="#3c3530"
                           strokeDasharray="3 5"
                           vertical={false}
                         />
@@ -1386,24 +1395,24 @@ function CommandCenter({
                           dataKey="time"
                           axisLine={false}
                           tickLine={false}
-                          tick={{ fill: "#6f8792", fontSize: 11 }}
+                          tick={{ fill: "#928880", fontSize: 11 }}
                         />
                         <YAxis
                           allowDecimals={false}
                           axisLine={false}
                           tickLine={false}
-                          tick={{ fill: "#6f8792", fontSize: 11 }}
+                          tick={{ fill: "#928880", fontSize: 11 }}
                         />
                         <Tooltip
                           contentStyle={{
-                            background: "#071219",
-                            border: "1px solid #20414e",
+                            background: "#191614",
+                            border: "1px solid #4e3220",
                           }}
                         />
                         <Area
                           type="monotone"
                           dataKey="incidents"
-                          stroke="#46d8eb"
+                          stroke="#eb8846"
                           strokeWidth={2}
                           fill="url(#liveArea)"
                         />
@@ -1439,7 +1448,7 @@ function CommandCenter({
                         {severityData.map((item) => (
                           <Cell
                             key={item.name}
-                            fill={item.value ? item.color : "#132d36"}
+                            fill={item.value ? item.color : "#36302c"}
                           />
                         ))}
                       </Pie>
@@ -1833,14 +1842,14 @@ function CommandCenter({
                 <ChevronRight />
                 <span>INGEST API</span>
                 <ChevronRight />
-                <span>NEON</span>
+                <span>SUPABASE</span>
                 <ChevronRight />
                 <span>LIVE SSE</span>
               </div>
             </article>
           </section>
         )}
-      </main>
+      </motion.main>
     </div>
   );
 }

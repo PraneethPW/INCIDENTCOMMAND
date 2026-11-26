@@ -8,6 +8,7 @@ export type IncidentStatus =
 export interface AppConfig {
   capabilities?: { operatorControls: boolean; runtimeTracking?: boolean };
   databaseConfigured: boolean;
+  databaseProvider?: string;
   databaseReady: boolean;
   sessionConfigured: boolean;
   aiConfigured: boolean;
