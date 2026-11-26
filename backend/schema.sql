@@ -169,3 +169,19 @@ CREATE TABLE IF NOT EXISTS runtime_resources (
 ALTER TABLE incidents ADD COLUMN IF NOT EXISTS runtime_resource_id UUID REFERENCES runtime_resources(id) ON DELETE SET NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS runtime_open_incident_idx ON incidents(runtime_resource_id) WHERE runtime_resource_id IS NOT NULL AND status<>'resolved';
 CREATE INDEX IF NOT EXISTS runtime_resources_org_idx ON runtime_resources(organization_id, source_id);
+
+-- This application authenticates through its backend, not Supabase's public Data API.
+-- Table owners retain backend access; anonymous/client roles receive no app-table access.
+DO $$
+DECLARE app_table text; api_role text; seq_name text;
+BEGIN
+  FOREACH app_table IN ARRAY ARRAY['organizations','users','memberships','services','service_checks','incidents','incident_events','ai_analyses','telemetry_events','workspace_invites','runtime_sources','runtime_resources'] LOOP
+    EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY',app_table);
+    FOR api_role IN SELECT rolname FROM pg_roles WHERE rolname IN ('anon','authenticated') LOOP
+      EXECUTE format('REVOKE ALL ON TABLE %I FROM %I',app_table,api_role);
+      seq_name := NULL;
+      IF app_table IN ('service_checks','telemetry_events') THEN seq_name := pg_get_serial_sequence(app_table,'id'); END IF;
+      IF seq_name IS NOT NULL THEN EXECUTE format('REVOKE ALL ON SEQUENCE %s FROM %I',seq_name,api_role); END IF;
+    END LOOP;
+  END LOOP;
+END $$;

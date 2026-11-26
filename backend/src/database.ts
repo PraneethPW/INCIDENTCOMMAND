@@ -1,31 +1,32 @@
 import "./env.js";
 import pg from "pg";
+import { connectionOptions } from "./connection.js";
 
 const { Pool } = pg;
 const connectionString = process.env.DATABASE_URL;
 
 export const pool = connectionString
   ? new Pool({
-      connectionString,
-      ssl: ["localhost", "127.0.0.1", "[::1]"].includes(
-        new URL(connectionString).hostname,
-      )
-        ? false
-        : { rejectUnauthorized: true },
-      max: 10,
+      ...connectionOptions(connectionString),
+      max: Math.max(
+        1,
+        Math.min(20, Number(process.env.DATABASE_POOL_MAX) || 5),
+      ),
       idleTimeoutMillis: 10_000,
       connectionTimeoutMillis: 10_000,
     })
   : null;
 
 pool?.on("error", (error) => {
-  // Neon may retire idle serverless connections. The pool replaces them on the next query.
+  // Database providers may retire idle serverless connections. The pool replaces them on the next query.
   console.error("Database idle connection was retired:", error.message);
 });
 
 export function requirePool(): pg.Pool {
   if (!pool) {
-    const error = new Error("Neon database is not configured") as Error & {
+    const error = new Error(
+      "PostgreSQL database is not configured",
+    ) as Error & {
       status?: number;
       setup?: string;
     };
@@ -40,7 +41,13 @@ export function requirePool(): pg.Pool {
 export async function databaseReady(): Promise<boolean> {
   if (!pool) return false;
   try {
-    await pool.query("SELECT 1 FROM organizations LIMIT 1");
+    const required = await pool.query(
+      `SELECT bool_and(to_regclass(name) IS NOT NULL) AS ready FROM unnest(ARRAY['organizations','users','memberships','services','service_checks','incidents','incident_events','ai_analyses','telemetry_events','workspace_invites','runtime_sources','runtime_resources']) AS name`,
+    );
+    if (!required.rows[0]?.ready) return false;
+    await pool.query(
+      `SELECT i.runtime_resource_id,r.source_id,a.context_hash,w.token_hash FROM incidents i,runtime_resources r,ai_analyses a,workspace_invites w LIMIT 0`,
+    );
     return true;
   } catch {
     return false;

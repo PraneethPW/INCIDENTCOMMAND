@@ -31,7 +31,7 @@ Copy-Item frontend/.env.example frontend/.env
 Edit `backend/.env`:
 
 ```env
-DATABASE_URL=your_neon_connection_string
+DATABASE_URL=your_supabase_postgresql_connection_string
 SESSION_SECRET=a_random_value_of_at_least_32_characters
 OPENROUTER_API_KEY=your_openrouter_key
 OPENROUTER_MODEL=openrouter/free
@@ -45,7 +45,7 @@ Use exactly one local environment file per app: `backend/.env` for server-only s
 
 Leave `VITE_API_URL=` blank in `frontend/.env` to use the existing API proxy. Database credentials, session secrets, and AI keys belong only in `backend/.env` or Railway's environment variables. Vercel frontend variables are public build-time settings.
 
-## 3. Initialize Neon
+## 3. Initialize Supabase
 
 ```bash
 npm run db:setup --prefix backend
@@ -91,14 +91,14 @@ Open `http://localhost:5173` and follow the product flow:
 ## Stack
 
 - Frontend: React, TypeScript, Tailwind CSS, Framer Motion, React Three Fiber, Recharts
-- Backend: Express, TypeScript, Neon PostgreSQL, signed HTTP-only sessions, SSE
+- Backend: Express, TypeScript, Supabase PostgreSQL, signed HTTP-only sessions, SSE
 - AI: OpenRouter with `openrouter/free` by default
 
 ## Operator controls and release verification
 
 The cockpit includes incident search and filters, persisted responder notes and ownership, JSON incident export, service settings and monitoring pause, ingest-key rotation, recent signal history, and role-based workspace invitations and switching. Connection failures expose a retry action, and reconnecting live streams reload current records.
 
-Health checks serialize per service; incident changes and their timelines commit together. Critical telemetry is deduplicated under concurrent requests. PostgreSQL notifications distribute committed updates across API replicas; Neon uses a direct connection for the listener and pooled connections for application traffic.
+Health checks serialize per service; incident changes and their timelines commit together. Critical telemetry is deduplicated under concurrent requests. PostgreSQL notifications distribute committed updates across API replicas; Supabase uses a session-capable connection for the listener and a bounded connection pool for application traffic.
 
 See [the operations runbook](docs/OPERATIONS.md) for deployment, database replacement, role permissions, verification, and the current capacity and feature limits. Run the integration suite only against an isolated `incident_test` database. GitHub Actions builds both applications, runs the suite with PostgreSQL, and lints the frontend.
 
@@ -109,3 +109,7 @@ Open **Infrastructure** to connect Docker hosts and Kubernetes namespaces to you
 Run `npm run collector` on the monitored host using the setup commands in the UI. The namespace-scoped Kubernetes collector manifest is in `deploy/kubernetes/collector.yaml`. Dockerfiles and `compose.yaml` also support running the application locally in containers, using the existing app-specific environment files.
 
 See [Docker and Kubernetes setup, detection rules, deployment and verification](docs/CONTAINER-TRACKING.md). This adds the monitoring foundation for the proposed Digital Twin lab; executable remediation experiments require a separate isolated worker and are not part of this tracking release.
+
+## Supabase connection and historical data
+
+See [Supabase setup and verified migration](docs/SUPABASE-MIGRATION.md) for TLS, session pooling, row security, data preservation and cutover checks. Switching the database URL creates no historical data copy. The migration command refuses to overwrite existing destination records.

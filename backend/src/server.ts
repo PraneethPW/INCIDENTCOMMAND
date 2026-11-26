@@ -26,6 +26,7 @@ import {
 } from "./security.js";
 import { workspace } from "./workspace.js";
 import { runtime } from "./runtime.js";
+import { databaseProvider } from "./connection.js";
 
 export const app = express();
 const port = Number(process.env.PORT || 8787);
@@ -54,6 +55,10 @@ app.use((req, res, next) => {
     !req.path.startsWith("/api/ingest/")
   ) {
     const origin = req.header("origin");
+    if (!origin && req.header("sec-fetch-site") === "cross-site")
+      return res
+        .status(403)
+        .json({ error: "Cross-site mutations are not allowed" });
     if (origin && !origins.includes(origin))
       return res.status(403).json({ error: "Origin is not allowed" });
   }
@@ -90,6 +95,7 @@ app.get("/api/config", async (_req, res) => {
     data: {
       capabilities: { operatorControls: true, runtimeTracking: true },
       databaseConfigured: Boolean(process.env.DATABASE_URL),
+      databaseProvider: databaseProvider(process.env.DATABASE_URL),
       databaseReady: await databaseReady(),
       sessionConfigured: Boolean(
         process.env.SESSION_SECRET && process.env.SESSION_SECRET.length >= 32,
@@ -105,6 +111,7 @@ app.get("/api/health", async (_req, res) => {
   res.status(ready ? 200 : 503).json({
     ok: ready,
     database: ready ? "connected" : "not-ready",
+    release: process.env.RAILWAY_GIT_COMMIT_SHA || null,
     timestamp: new Date().toISOString(),
   });
 });
@@ -113,7 +120,7 @@ app.post("/api/auth/register", async (req, res) => {
   const input = z
     .object({
       name: z.string().trim().min(2).max(80),
-      email: z.string().email(),
+      email: z.string().trim().email(),
       password: z
         .string()
         .min(8)
@@ -177,7 +184,7 @@ app.post("/api/auth/register", async (req, res) => {
 
 app.post("/api/auth/login", async (req, res) => {
   const input = z
-    .object({ email: z.string().email(), password: z.string().min(1) })
+    .object({ email: z.string().trim().email(), password: z.string().min(1) })
     .parse(req.body);
   const db = requirePool();
   const result = await db.query<{
@@ -804,6 +811,10 @@ app.post("/api/ingest/:serviceId", async (req, res) => {
   res.status(202).json({ accepted: true });
 });
 
+app.use("/api", (_req, res) =>
+  res.status(404).json({ error: "API route not found" }),
+);
+
 app.use(
   (
     error: unknown,
@@ -811,6 +822,10 @@ app.use(
     res: express.Response,
     _next: express.NextFunction,
   ) => {
+    if ((error as { type?: string }).type === "entity.parse.failed")
+      return res.status(400).json({ error: "Request body must be valid JSON" });
+    if ((error as { type?: string }).type === "entity.too.large")
+      return res.status(413).json({ error: "Request body is too large" });
     if (!(error instanceof z.ZodError))
       console.error(error instanceof Error ? error.message : "Request failed");
     if (error instanceof z.ZodError)

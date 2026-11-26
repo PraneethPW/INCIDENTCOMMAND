@@ -1,6 +1,7 @@
 import type { Response } from "express";
 import pg from "pg";
 import { pool } from "./database.js";
+import { connectionOptions, listenerUrl } from "./connection.js";
 
 interface RealtimeEvent {
   type: string;
@@ -49,15 +50,10 @@ export function startRealtime() {
   async function listen() {
     if (!pool || stopped) return;
     try {
-      const url = new URL(
+      const url = listenerUrl(
         process.env.DATABASE_LISTEN_URL || process.env.DATABASE_URL!,
       );
-      if (url.hostname.endsWith(".neon.tech"))
-        url.hostname = url.hostname.replace("-pooler.", ".");
-      const connection = new pg.Client({
-        connectionString: url.href,
-        connectionTimeoutMillis: 10_000,
-      });
+      const connection = new pg.Client(connectionOptions(url));
       client = connection;
       const reconnect = () => {
         if (client !== connection) return;
