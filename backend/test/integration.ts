@@ -2,11 +2,13 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
+import { setTimeout as delay } from "node:timers/promises";
 import { app } from "../src/server.js";
 import { pool, transaction } from "../src/database.js";
 import { checkService } from "../src/monitor.js";
 import { isPublicAddress, healthUrl } from "../src/security.js";
 import { startRealtime } from "../src/realtime.js";
+import { applySchema } from "../src/schema-setup.js";
 
 if (
   process.env.NODE_ENV !== "test" ||
@@ -328,6 +330,76 @@ test("transaction rollback does not leak partially created records", async () =>
     0,
   );
 });
+test("schema setup rolls back all work and retries a transient deadlock", async () => {
+  const marker = randomUUID();
+  const sequence = "schema_retry_" + marker.replaceAll("-", "");
+  await db.query(`CREATE SEQUENCE ${sequence}`);
+  try {
+    await applySchema(`
+      INSERT INTO organizations(name,slug) VALUES('${marker}','${marker}');
+      DO $$ BEGIN
+        IF nextval('${sequence}')=1 THEN
+          RAISE EXCEPTION 'controlled conflict' USING ERRCODE='40P01';
+        END IF;
+      END $$;
+    `);
+    assert.equal((await db.query("SELECT 1 FROM organizations WHERE slug=$1", [marker])).rowCount, 1);
+    assert.equal(Number((await db.query(`SELECT last_value FROM ${sequence}`)).rows[0].last_value), 2);
+  } finally {
+    await db.query("DELETE FROM organizations WHERE slug=$1", [marker]);
+    await db.query(`DROP SEQUENCE ${sequence}`);
+  }
+});
+
+test("schema setup recovers from a real advisory-lock timeout", async () => {
+  const marker = randomUUID();
+  const blocker = await db.connect();
+  let pending: Promise<void> | undefined;
+  try {
+    await blocker.query("BEGIN");
+    await blocker.query("SELECT pg_advisory_xact_lock(hashtext('incident-command-schema'))");
+    pending = applySchema(`INSERT INTO organizations(name,slug) VALUES('${marker}','${marker}')`);
+    await delay(2300);
+    await blocker.query("COMMIT");
+    await pending;
+    assert.equal((await db.query("SELECT 1 FROM organizations WHERE slug=$1", [marker])).rowCount, 1);
+  } finally {
+    await blocker.query("ROLLBACK");
+    blocker.release();
+    await pending?.catch(() => {});
+    await db.query("DELETE FROM organizations WHERE slug=$1", [marker]);
+  }
+});
+
+test("schema setup surfaces permanent SQL errors without retrying", async () => {
+  const sequence = "schema_error_" + randomUUID().replaceAll("-", "");
+  await db.query(`CREATE SEQUENCE ${sequence}`);
+  try {
+    await assert.rejects(applySchema(`SELECT nextval('${sequence}'); SELECT * FROM ${sequence}_missing;`), { code: "42P01" });
+    assert.equal(Number((await db.query(`SELECT last_value FROM ${sequence}`)).rows[0].last_value), 1);
+  } finally {
+    await db.query(`DROP SEQUENCE ${sequence}`);
+  }
+});
+
+test("schema setup stops after five conflicts and leaves no partial records", async () => {
+  const marker = randomUUID();
+  const sequence = "schema_limit_" + marker.replaceAll("-", "");
+  await db.query(`CREATE SEQUENCE ${sequence}`);
+  try {
+    await assert.rejects(applySchema(`
+      SELECT nextval('${sequence}');
+      INSERT INTO organizations(name,slug) VALUES('${marker}','${marker}');
+      DO $$ BEGIN RAISE EXCEPTION 'controlled conflict' USING ERRCODE='40P01'; END $$;
+    `), { code: "40P01" });
+    assert.equal(Number((await db.query(`SELECT last_value FROM ${sequence}`)).rows[0].last_value), 5);
+    assert.equal((await db.query("SELECT 1 FROM organizations WHERE slug=$1", [marker])).rowCount, 0);
+  } finally {
+    await db.query("DELETE FROM organizations WHERE slug=$1", [marker]);
+    await db.query(`DROP SEQUENCE ${sequence}`);
+  }
+});
+
 test("invites are single-use, viewers cannot mutate or see keys, workspace switching is scoped", async () => {
   const invite = await call("/api/team/invites", owner.cookie, {
     role: "viewer",
