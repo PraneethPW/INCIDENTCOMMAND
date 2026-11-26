@@ -482,7 +482,12 @@ app.post(
       runtime: runtimeEvidence.rows,
     };
     const contextHash = createHash("sha256")
-      .update(JSON.stringify(context))
+      .update(JSON.stringify({
+        ...context,
+        // A heartbeat alone is not new diagnostic evidence. Health, presence,
+        // restarts and the computed stale flag still invalidate the analysis.
+        runtime: context.runtime.map(({ observed_at: _observedAt, ...state }) => state),
+      }))
       .digest("hex");
     const latest = await db.query(
       `SELECT summary,probable_cause AS "probableCause",confidence,evidence,recommendations,model,context_hash AS "contextHash",created_at AS "createdAt",'openrouter' AS source FROM ai_analyses WHERE organization_id=$1 AND incident_id=$2 ORDER BY created_at DESC LIMIT 1`,

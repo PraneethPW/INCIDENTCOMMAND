@@ -1430,6 +1430,13 @@ footer p {
 .intelligence-context {
   padding: 0 22px 24px;
 }
+.intelligence-picker {
+  margin: 20px 0;
+}
+.intelligence-picker select {
+  width: 100%;
+  min-width: 0;
+}
 .intelligence-context .panel-head {
   margin: 0 -22px 25px;
 }
