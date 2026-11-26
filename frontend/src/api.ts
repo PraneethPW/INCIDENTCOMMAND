@@ -46,6 +46,75 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  runtimeConnections: async () =>
+    (
+      await request<{ data: import("./types").RuntimeConnection[] }>(
+        "/api/runtime/connections",
+      )
+    ).data,
+  runtimeLabs: async () =>
+    (
+      await request<{ data: import("./types").RuntimeLabs }>(
+        "/api/runtime/labs",
+      )
+    ).data,
+  testRuntime: async (body: import("./types").RuntimeConnectionInput) =>
+    (
+      await request<{
+        data: {
+          resources: import("./types").RuntimeResource[];
+          checkedAt: string;
+        };
+      }>("/api/runtime/connections/test", {
+        method: "POST",
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(35_000),
+      })
+    ).data,
+  discoverRuntime: async (body: import("./types").RuntimeConnectionInput) =>
+    (
+      await request<{ data: { id: number; name: string }[] }>(
+        "/api/runtime/connections/discover",
+        {
+          method: "POST",
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(35_000),
+        },
+      )
+    ).data,
+  saveRuntime: (body: import("./types").RuntimeConnectionInput, id?: string) =>
+    request(
+      id ? `/api/runtime/connections/${id}` : "/api/runtime/connections",
+      {
+        method: id ? "PUT" : "POST",
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(35_000),
+      },
+    ),
+  toggleRuntime: (id: string, enabled: boolean) =>
+    request(`/api/runtime/connections/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ enabled }),
+    }),
+  removeRuntime: (id: string) =>
+    request(`/api/runtime/connections/${id}`, { method: "DELETE" }),
+  syncRuntime: (id: string) =>
+    request(`/api/runtime/connections/${id}/sync`, {
+      method: "POST",
+      signal: AbortSignal.timeout(35_000),
+    }),
+  startLab: (platform: string) =>
+    request("/api/runtime/labs", {
+      method: "POST",
+      body: JSON.stringify({ platform }),
+    }),
+  labScenario: (id: string, scenario: string) =>
+    request(`/api/runtime/labs/${id}/scenario`, {
+      method: "POST",
+      body: JSON.stringify({ scenario }),
+    }),
+  endLab: (id: string) =>
+    request(`/api/runtime/labs/${id}/end`, { method: "POST" }),
   infrastructure: async () =>
     (
       await request<{ data: import("./types").Infrastructure }>(
@@ -76,8 +145,8 @@ export const api = {
   logout: async () => request("/api/auth/logout", { method: "POST" }),
   overview: async () =>
     (await request<{ data: Overview }>("/api/overview")).data,
-  incidents: async () =>
-    (await request<{ data: Incident[] }>("/api/incidents")).data,
+  incidents: async (scope = "live") =>
+    (await request<{ data: Incident[] }>(`/api/incidents?scope=${scope}`)).data,
   incident: async (id: string) =>
     (await request<{ data: Incident }>(`/api/incidents/${id}`)).data,
   createIncident: async (body: Record<string, unknown>) =>

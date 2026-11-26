@@ -9,6 +9,8 @@ import { checkService } from "../src/monitor.js";
 import { isPublicAddress, healthUrl } from "../src/security.js";
 import { startRealtime } from "../src/realtime.js";
 import { applySchema } from "../src/schema-setup.js";
+import { createServer } from "node:http";
+import { syncConnection } from "../src/runtime-workspace.js";
 
 if (
   process.env.NODE_ENV !== "test" ||
@@ -343,8 +345,18 @@ test("schema setup rolls back all work and retries a transient deadlock", async 
         END IF;
       END $$;
     `);
-    assert.equal((await db.query("SELECT 1 FROM organizations WHERE slug=$1", [marker])).rowCount, 1);
-    assert.equal(Number((await db.query(`SELECT last_value FROM ${sequence}`)).rows[0].last_value), 2);
+    assert.equal(
+      (await db.query("SELECT 1 FROM organizations WHERE slug=$1", [marker]))
+        .rowCount,
+      1,
+    );
+    assert.equal(
+      Number(
+        (await db.query(`SELECT last_value FROM ${sequence}`)).rows[0]
+          .last_value,
+      ),
+      2,
+    );
   } finally {
     await db.query("DELETE FROM organizations WHERE slug=$1", [marker]);
     await db.query(`DROP SEQUENCE ${sequence}`);
@@ -357,12 +369,20 @@ test("schema setup recovers from a real advisory-lock timeout", async () => {
   let pending: Promise<void> | undefined;
   try {
     await blocker.query("BEGIN");
-    await blocker.query("SELECT pg_advisory_xact_lock(hashtext('incident-command-schema'))");
-    pending = applySchema(`INSERT INTO organizations(name,slug) VALUES('${marker}','${marker}')`);
+    await blocker.query(
+      "SELECT pg_advisory_xact_lock(hashtext('incident-command-schema'))",
+    );
+    pending = applySchema(
+      `INSERT INTO organizations(name,slug) VALUES('${marker}','${marker}')`,
+    );
     await delay(2300);
     await blocker.query("COMMIT");
     await pending;
-    assert.equal((await db.query("SELECT 1 FROM organizations WHERE slug=$1", [marker])).rowCount, 1);
+    assert.equal(
+      (await db.query("SELECT 1 FROM organizations WHERE slug=$1", [marker]))
+        .rowCount,
+      1,
+    );
   } finally {
     await blocker.query("ROLLBACK");
     blocker.release();
@@ -375,8 +395,19 @@ test("schema setup surfaces permanent SQL errors without retrying", async () => 
   const sequence = "schema_error_" + randomUUID().replaceAll("-", "");
   await db.query(`CREATE SEQUENCE ${sequence}`);
   try {
-    await assert.rejects(applySchema(`SELECT nextval('${sequence}'); SELECT * FROM ${sequence}_missing;`), { code: "42P01" });
-    assert.equal(Number((await db.query(`SELECT last_value FROM ${sequence}`)).rows[0].last_value), 1);
+    await assert.rejects(
+      applySchema(
+        `SELECT nextval('${sequence}'); SELECT * FROM ${sequence}_missing;`,
+      ),
+      { code: "42P01" },
+    );
+    assert.equal(
+      Number(
+        (await db.query(`SELECT last_value FROM ${sequence}`)).rows[0]
+          .last_value,
+      ),
+      1,
+    );
   } finally {
     await db.query(`DROP SEQUENCE ${sequence}`);
   }
@@ -387,13 +418,26 @@ test("schema setup stops after five conflicts and leaves no partial records", as
   const sequence = "schema_limit_" + marker.replaceAll("-", "");
   await db.query(`CREATE SEQUENCE ${sequence}`);
   try {
-    await assert.rejects(applySchema(`
+    await assert.rejects(
+      applySchema(`
       SELECT nextval('${sequence}');
       INSERT INTO organizations(name,slug) VALUES('${marker}','${marker}');
       DO $$ BEGIN RAISE EXCEPTION 'controlled conflict' USING ERRCODE='40P01'; END $$;
-    `), { code: "40P01" });
-    assert.equal(Number((await db.query(`SELECT last_value FROM ${sequence}`)).rows[0].last_value), 5);
-    assert.equal((await db.query("SELECT 1 FROM organizations WHERE slug=$1", [marker])).rowCount, 0);
+    `),
+      { code: "40P01" },
+    );
+    assert.equal(
+      Number(
+        (await db.query(`SELECT last_value FROM ${sequence}`)).rows[0]
+          .last_value,
+      ),
+      5,
+    );
+    assert.equal(
+      (await db.query("SELECT 1 FROM organizations WHERE slug=$1", [marker]))
+        .rowCount,
+      0,
+    );
   } finally {
     await db.query("DELETE FROM organizations WHERE slug=$1", [marker]);
     await db.query(`DROP SEQUENCE ${sequence}`);
@@ -573,7 +617,9 @@ test("AI uses configured model, caches persisted evidence, and preserves stale a
 test("runtime snapshots authenticate, isolate, deduplicate and verify recovery", async () => {
   const runtimeOwner = await register();
   const svc = (
-    await call("/api/services", runtimeOwner.cookie, { name: "Runtime test service" })
+    await call("/api/services", runtimeOwner.cookie, {
+      name: "Runtime test service",
+    })
   ).data;
   const at = Date.now() - 30_000;
   const resource = {
@@ -606,7 +652,8 @@ test("runtime snapshots authenticate, isolate, deduplicate and verify recovery",
   );
   assert.ok(replies.every((r) => r.status === 202));
   assert.equal(replies.filter((r) => !r.payload.ignored).length, 1);
-  const inventory = (await call("/api/infrastructure", runtimeOwner.cookie)).data;
+  const inventory = (await call("/api/infrastructure", runtimeOwner.cookie))
+    .data;
   assert.equal(inventory.resources.length, 1);
   assert.equal(inventory.resources[0].status, "down");
   const incidentId = inventory.resources[0].incidentId;
@@ -625,23 +672,27 @@ test("runtime snapshots authenticate, isolate, deduplicate and verify recovery",
     true,
   );
   assert.equal(
-    (await call(`/api/incidents/${incidentId}`, runtimeOwner.cookie)).data.status,
+    (await call(`/api/incidents/${incidentId}`, runtimeOwner.cookie)).data
+      .status,
     "investigating",
   );
   await ingest(snapshot(2, []));
   assert.equal(
-    (await call("/api/infrastructure", runtimeOwner.cookie)).data.resources[0].present,
+    (await call("/api/infrastructure", runtimeOwner.cookie)).data.resources[0]
+      .present,
     false,
   );
   assert.equal(
-    (await call(`/api/incidents/${incidentId}`, runtimeOwner.cookie)).data.status,
+    (await call(`/api/incidents/${incidentId}`, runtimeOwner.cookie)).data
+      .status,
     "investigating",
   );
   await ingest(
     snapshot(3, [{ ...resource, status: "unknown", reason: "Starting" }]),
   );
   assert.equal(
-    (await call(`/api/incidents/${incidentId}`, runtimeOwner.cookie)).data.status,
+    (await call(`/api/incidents/${incidentId}`, runtimeOwner.cookie)).data
+      .status,
     "investigating",
   );
   await ingest(
@@ -649,8 +700,9 @@ test("runtime snapshots authenticate, isolate, deduplicate and verify recovery",
       { ...resource, status: "healthy", reason: "Docker health: healthy" },
     ]),
   );
-  const recovered = (await call(`/api/incidents/${incidentId}`, runtimeOwner.cookie))
-    .data;
+  const recovered = (
+    await call(`/api/incidents/${incidentId}`, runtimeOwner.cookie)
+  ).data;
   assert.equal(recovered.status, "resolved");
   assert.ok(
     recovered.events.some(
@@ -715,8 +767,9 @@ test("runtime snapshots authenticate, isolate, deduplicate and verify recovery",
     (r: { platform: string }) => r.platform === "kubernetes",
   );
   assert.ok(kube.incidentId);
-  const event = (await call(`/api/incidents/${kube.incidentId}`, runtimeOwner.cookie))
-    .data.events[0];
+  const event = (
+    await call(`/api/incidents/${kube.incidentId}`, runtimeOwner.cookie)
+  ).data.events[0];
   assert.equal(event.metadata.namespace, "orders");
   const originalFetch = globalThis.fetch;
   const savedKey = process.env.OPENROUTER_API_KEY;
@@ -763,21 +816,42 @@ test("runtime snapshots authenticate, isolate, deduplicate and verify recovery",
       ).status,
       200,
     );
-    await ingest({ ...kubernetes, observedAt: new Date(at + 8000).toISOString() });
-    const cachedRuntime = await call(`/api/incidents/${kube.incidentId}/analyze`, runtimeOwner.cookie, {});
+    await ingest({
+      ...kubernetes,
+      observedAt: new Date(at + 8000).toISOString(),
+    });
+    const cachedRuntime = await call(
+      `/api/incidents/${kube.incidentId}/analyze`,
+      runtimeOwner.cookie,
+      {},
+    );
     assert.equal(cachedRuntime.data.cached, true);
     assert.equal(runtimeAnalysisCalls, 1);
     await ingest({
       ...kubernetes,
       observedAt: new Date(at + 9000).toISOString(),
-      resources: kubernetes.resources.map((r) => ({ ...r, restartCount: r.restartCount + 1 })),
+      resources: kubernetes.resources.map((r) => ({
+        ...r,
+        restartCount: r.restartCount + 1,
+      })),
     });
-    const changedRuntime = await call(`/api/incidents/${kube.incidentId}/analyze`, runtimeOwner.cookie, {});
+    const changedRuntime = await call(
+      `/api/incidents/${kube.incidentId}/analyze`,
+      runtimeOwner.cookie,
+      {},
+    );
     assert.equal(changedRuntime.status, 200);
     assert.equal(changedRuntime.data.cached, undefined);
     assert.equal(runtimeAnalysisCalls, 2);
-    await db.query("UPDATE runtime_sources SET observed_at=NOW()-INTERVAL '5 minutes' WHERE service_id=$1 AND platform='kubernetes'", [svc.id]);
-    const staleRuntime = await call(`/api/incidents/${kube.incidentId}/analyze`, runtimeOwner.cookie, {});
+    await db.query(
+      "UPDATE runtime_sources SET observed_at=NOW()-INTERVAL '5 minutes' WHERE service_id=$1 AND platform='kubernetes'",
+      [svc.id],
+    );
+    const staleRuntime = await call(
+      `/api/incidents/${kube.incidentId}/analyze`,
+      runtimeOwner.cookie,
+      {},
+    );
     assert.equal(staleRuntime.status, 200);
     assert.equal(staleRuntime.data.cached, undefined);
     assert.equal(runtimeAnalysisCalls, 3);
@@ -847,4 +921,325 @@ test("readiness rejects an incomplete application schema", async () => {
     );
   }
   assert.equal((await call("/api/health")).status, 200);
+});
+
+test("browser labs isolate test data, deduplicate failures, retain missing incidents and verify simulated recovery", async () => {
+  const operator = await register();
+  const lab = await call("/api/runtime/labs", operator.cookie, {
+    platform: "docker",
+  });
+  assert.equal(lab.status, 201);
+  const id = lab.data.id;
+  const scenario = (scenario: string) =>
+    call(`/api/runtime/labs/${id}/scenario`, operator.cookie, { scenario });
+  assert.equal((await scenario("unhealthy")).status, 200);
+  await Promise.all([scenario("unhealthy"), scenario("unhealthy")]);
+  let state = (await call("/api/runtime/labs", operator.cookie)).data;
+  assert.equal(state.incidents.length, 1);
+  const incident = state.incidents[0];
+  assert.equal((await call("/api/incidents", operator.cookie)).data.length, 0);
+  assert.equal(
+    (await call("/api/incidents?scope=test", operator.cookie)).data.length,
+    1,
+  );
+  assert.equal((await call("/api/services", operator.cookie)).data.length, 0);
+  assert.equal(
+    (await call("/api/infrastructure", operator.cookie)).data.resources.length,
+    0,
+  );
+  const overview = (await call("/api/overview", operator.cookie)).data;
+  assert.equal(overview.metrics.active, 0);
+  assert.equal(overview.metrics.servicesTotal, 0);
+  assert.equal(overview.recent.length, 0);
+  assert.ok(
+    overview.trends.every((p: { incidents: number }) => p.incidents === 0),
+  );
+  assert.equal(
+    (await call(`/api/incidents/${incident.id}`, operator.cookie)).data.isTest,
+    true,
+  );
+  assert.equal(
+    (
+      await call(`/api/runtime/labs/${id}/scenario`, other.cookie, {
+        scenario: "healthy",
+      })
+    ).status,
+    404,
+  );
+  assert.equal((await scenario("crashloop")).status, 400);
+  await scenario("missing");
+  assert.equal(
+    (await call(`/api/incidents/${incident.id}`, operator.cookie)).data.status,
+    "investigating",
+  );
+  await scenario("healthy");
+  assert.equal(
+    (await call(`/api/incidents/${incident.id}`, operator.cookie)).data.status,
+    "resolved",
+  );
+  await scenario("oom");
+  state = (await call("/api/runtime/labs", operator.cookie)).data;
+  assert.equal(state.incidents.length, 2);
+  assert.equal(
+    (await call(`/api/runtime/labs/${id}/end`, operator.cookie, {})).status,
+    200,
+  );
+  assert.equal((await scenario("healthy")).status, 404);
+  assert.equal(
+    (await call("/api/runtime/labs", operator.cookie)).data.incidents.length,
+    2,
+  );
+  const svc = await db.query("SELECT id,ingest_key FROM services WHERE id=$1", [
+    state.sessions[0].serviceId,
+  ]);
+  assert.equal(
+    (
+      await call(
+        `/api/ingest/${svc.rows[0].id}/runtime`,
+        "",
+        {
+          platform: "docker",
+          cluster: `lab:${id}`,
+          observedAt: new Date().toISOString(),
+          intervalSeconds: 30,
+          resources: [],
+        },
+        "POST",
+        { "x-ingest-key": svc.rows[0].ingest_key },
+      )
+    ).status,
+    400,
+  );
+});
+
+test("Kubernetes labs preserve stable identities across failure types and keep all test actions read-only for viewers", async () => {
+  const operator = await register();
+  const viewerUser = await register();
+  await db.query(
+    "INSERT INTO memberships(organization_id,user_id,role) VALUES($1,$2,'viewer')",
+    [operator.org, viewerUser.id],
+  );
+  viewerUser.cookie = (
+    await call("/api/workspaces/switch", viewerUser.cookie, {
+      organizationId: operator.org,
+    })
+  ).cookie;
+  const lab = (
+    await call("/api/runtime/labs", operator.cookie, { platform: "kubernetes" })
+  ).data;
+  for (const scenario of ["crashloop", "imagepull", "readiness", "replicas"]) {
+    assert.equal(
+      (
+        await call(`/api/runtime/labs/${lab.id}/scenario`, operator.cookie, {
+          scenario,
+        })
+      ).status,
+      200,
+    );
+  }
+  const state = (await call("/api/runtime/labs", operator.cookie)).data;
+  assert.equal(state.resources.length, 2);
+  assert.equal(state.incidents.length, 2);
+  assert.equal(
+    (await call("/api/runtime/labs", viewerUser.cookie)).status,
+    200,
+  );
+  assert.equal(
+    (await call("/api/runtime/labs", viewerUser.cookie, { platform: "docker" }))
+      .status,
+    403,
+  );
+  assert.equal(
+    (
+      await call(`/api/runtime/labs/${lab.id}/scenario`, viewerUser.cookie, {
+        scenario: "healthy",
+      })
+    ).status,
+    403,
+  );
+  assert.equal(
+    (await call("/api/runtime/connections/test", viewerUser.cookie, {})).status,
+    403,
+  );
+  await call(`/api/runtime/labs/${lab.id}/scenario`, operator.cookie, {
+    scenario: "healthy",
+  });
+  assert.ok(
+    (await call("/api/runtime/labs", operator.cookie)).data.incidents.every(
+      (i: { status: string }) => i.status === "resolved",
+    ),
+  );
+});
+
+test("web Docker connections persist encrypted credentials, poll real API fixtures, serialize refreshes and preserve observations on failure", async () => {
+  const operator = await register();
+  let healthy = true,
+    reject = false,
+    slow = false;
+  const remote = createServer(async (req, res) => {
+    assert.equal(req.method, "GET");
+    assert.equal(req.headers.authorization, "Bearer test-remote-secret");
+    if (slow) await delay(100);
+    res.setHeader("content-type", "application/json");
+    if (reject) {
+      res.writeHead(403).end('{"error":"do-not-expose-remote-details"}');
+      return;
+    }
+    res.end(
+      JSON.stringify(
+        req.url!.startsWith("/containers/json")
+          ? [{ Id: "a".repeat(64) }]
+          : {
+              Id: "a".repeat(64),
+              Name: "/orders-api",
+              State: {
+                Status: "running",
+                Health: { Status: healthy ? "healthy" : "unhealthy" },
+              },
+              Config: { Env: ["SECRET=do-not-store"] },
+              Image: "sample:v1",
+              RestartCount: 0,
+            },
+      ),
+    );
+  }).listen(0, "127.0.0.1");
+  await new Promise<void>((resolve) => remote.once("listening", resolve));
+  const port = (remote.address() as { port: number }).port;
+  try {
+    const input = {
+      name: "Connected Docker",
+      provider: "docker",
+      endpointUrl: `http://127.0.0.1:${port}`,
+      token: "test-remote-secret",
+    };
+    const preview = await call(
+      "/api/runtime/connections/test",
+      operator.cookie,
+      input,
+    );
+    assert.equal(preview.status, 200);
+    assert.equal(preview.data.resources[0].status, "healthy");
+    assert.ok(!JSON.stringify(preview).includes("do-not-store"));
+    const created = await call(
+      "/api/runtime/connections",
+      operator.cookie,
+      input,
+    );
+    assert.equal(created.status, 201);
+    const id = created.data.id;
+    const raw = (
+      await db.query(
+        "SELECT credentials FROM runtime_connections WHERE id=$1",
+        [id],
+      )
+    ).rows[0].credentials;
+    assert.ok(raw.startsWith("v1:") && !raw.includes("test-remote-secret"));
+    const listed = await call("/api/runtime/connections", operator.cookie);
+    assert.ok(!JSON.stringify(listed).includes("test-remote-secret"));
+    assert.equal(
+      (await call("/api/runtime/connections", other.cookie)).data.length,
+      0,
+    );
+    assert.equal(
+      (await call(`/api/runtime/connections/${id}/sync`, other.cookie, {}))
+        .status,
+      404,
+    );
+    healthy = false;
+    await syncConnection(id, operator.org);
+    const inventory = (await call("/api/infrastructure", operator.cookie)).data;
+    assert.equal(inventory.sources[0].origin, "connection");
+    assert.equal(inventory.sources[0].cluster, input.name);
+    const incident = inventory.resources[0].incidentId;
+    assert.ok(incident);
+    slow = true;
+    const refreshes = await Promise.allSettled([
+      syncConnection(id),
+      syncConnection(id),
+    ]);
+    assert.equal(refreshes.filter((r) => r.status === "fulfilled").length, 1);
+    slow = false;
+    reject = true;
+    await assert.rejects(syncConnection(id), /rejected these credentials/);
+    const failed = (await call("/api/runtime/connections", operator.cookie))
+      .data[0];
+    assert.equal(failed.lastStatus, "error");
+    assert.ok(!failed.lastError.includes("do-not-expose"));
+    assert.equal(
+      (await call(`/api/incidents/${incident}`, operator.cookie)).data.status,
+      "investigating",
+    );
+    assert.equal(
+      (await call("/api/infrastructure", operator.cookie)).data.resources[0]
+        .present,
+      true,
+    );
+    await call(
+      `/api/runtime/connections/${id}`,
+      operator.cookie,
+      { enabled: false },
+      "PATCH",
+    );
+    await assert.rejects(syncConnection(id), /paused/);
+    reject = false;
+    healthy = true;
+    assert.equal(
+      (
+        await call(
+          `/api/runtime/connections/${id}`,
+          operator.cookie,
+          input,
+          "PUT",
+        )
+      ).status,
+      200,
+    );
+    assert.equal(
+      (await call(`/api/incidents/${incident}`, operator.cookie)).data.status,
+      "resolved",
+    );
+    assert.equal(
+      (
+        await call(
+          `/api/runtime/connections/${id}`,
+          operator.cookie,
+          { ...input, provider: "kubernetes" },
+          "PUT",
+        )
+      ).status,
+      400,
+    );
+    assert.equal(
+      (
+        await call(
+          `/api/runtime/connections/${id}`,
+          other.cookie,
+          undefined,
+          "DELETE",
+        )
+      ).status,
+      404,
+    );
+    assert.equal(
+      (
+        await call(
+          `/api/runtime/connections/${id}`,
+          operator.cookie,
+          undefined,
+          "DELETE",
+        )
+      ).status,
+      200,
+    );
+    assert.equal(
+      (await call("/api/runtime/connections", operator.cookie)).data.length,
+      0,
+    );
+    assert.equal(
+      (await call(`/api/incidents/${incident}`, operator.cookie)).data.status,
+      "resolved",
+    );
+  } finally {
+    await new Promise<void>((resolve) => remote.close(() => resolve()));
+  }
 });

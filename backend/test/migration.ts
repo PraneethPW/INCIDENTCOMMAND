@@ -60,7 +60,7 @@ test("migration preserves legacy data, JSON, microseconds and BIGINT precision a
       await readFile(new URL("../schema.sql", import.meta.url), "utf8"),
     );
     await source.query(
-      "ALTER TABLE incidents DROP COLUMN runtime_resource_id; DROP TABLE runtime_resources; DROP TABLE runtime_sources;",
+      "ALTER TABLE incidents DROP COLUMN runtime_resource_id; DROP TABLE runtime_resources; DROP TABLE runtime_sources; DROP TABLE runtime_connections; DROP TABLE runtime_lab_sessions;",
     );
     const org = (
       await source.query(

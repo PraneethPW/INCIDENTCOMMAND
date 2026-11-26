@@ -11,5 +11,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 WORKDIR /app
 COPY scripts/runtime-collector.mjs ./scripts/runtime-collector.mjs
 COPY scripts/runtime/normalize.mjs ./scripts/runtime/normalize.mjs
+COPY backend/src/runtime-normalize.mjs ./backend/src/runtime-normalize.mjs
 USER node
 CMD ["node", "scripts/runtime-collector.mjs"]

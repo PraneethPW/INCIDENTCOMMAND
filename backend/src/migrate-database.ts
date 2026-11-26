@@ -10,6 +10,8 @@ export const applicationTables = [
   "users",
   "memberships",
   "services",
+  "runtime_connections",
+  "runtime_lab_sessions",
   "runtime_sources",
   "runtime_resources",
   "service_checks",

@@ -170,12 +170,58 @@ ALTER TABLE incidents ADD COLUMN IF NOT EXISTS runtime_resource_id UUID REFERENC
 CREATE UNIQUE INDEX IF NOT EXISTS runtime_open_incident_idx ON incidents(runtime_resource_id) WHERE runtime_resource_id IS NOT NULL AND status<>'resolved';
 CREATE INDEX IF NOT EXISTS runtime_resources_org_idx ON runtime_resources(organization_id, source_id);
 
+ALTER TABLE services ADD COLUMN IF NOT EXISTS is_test BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE incidents ADD COLUMN IF NOT EXISTS is_test BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE IF NOT EXISTS runtime_connections (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  service_id UUID NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  provider TEXT NOT NULL CHECK(provider IN ('docker','portainer','kubernetes')),
+  endpoint_url TEXT NOT NULL,
+  namespace TEXT NOT NULL DEFAULT 'default',
+  environment_id INTEGER,
+  credentials TEXT NOT NULL,
+  interval_seconds INTEGER NOT NULL DEFAULT 60 CHECK(interval_seconds BETWEEN 30 AND 300),
+  enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  last_status TEXT NOT NULL DEFAULT 'connected',
+  last_error TEXT,
+  last_checked_at TIMESTAMPTZ,
+  next_check_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  lease_token UUID,
+  lease_until TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS runtime_connections_due_idx ON runtime_connections(next_check_at) WHERE enabled;
+CREATE INDEX IF NOT EXISTS runtime_connections_org_idx ON runtime_connections(organization_id);
+ALTER TABLE runtime_connections ADD COLUMN IF NOT EXISTS selector TEXT NOT NULL DEFAULT '';
+ALTER TABLE runtime_sources ADD COLUMN IF NOT EXISTS origin TEXT NOT NULL DEFAULT 'collector' CHECK(origin IN ('collector','connection','lab'));
+ALTER TABLE runtime_sources ADD COLUMN IF NOT EXISTS connection_id UUID REFERENCES runtime_connections(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS runtime_sources_connection_idx ON runtime_sources(connection_id);
+CREATE INDEX IF NOT EXISTS runtime_connections_service_idx ON runtime_connections(service_id);
+
+CREATE TABLE IF NOT EXISTS runtime_lab_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  service_id UUID NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+  platform TEXT NOT NULL CHECK(platform IN ('docker','kubernetes')),
+  name TEXT NOT NULL,
+  scenario TEXT NOT NULL DEFAULT 'healthy',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  ended_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS runtime_lab_org_idx ON runtime_lab_sessions(organization_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS runtime_lab_service_idx ON runtime_lab_sessions(service_id);
+
 -- This application authenticates through its backend, not Supabase's public Data API.
 -- Table owners retain backend access; anonymous/client roles receive no app-table access.
 DO $$
 DECLARE app_table text; api_role text; seq_name text;
 BEGIN
-  FOREACH app_table IN ARRAY ARRAY['organizations','users','memberships','services','service_checks','incidents','incident_events','ai_analyses','telemetry_events','workspace_invites','runtime_sources','runtime_resources'] LOOP
+  FOREACH app_table IN ARRAY ARRAY['organizations','users','memberships','services','service_checks','incidents','incident_events','ai_analyses','telemetry_events','workspace_invites','runtime_sources','runtime_resources','runtime_connections','runtime_lab_sessions'] LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY',app_table);
     FOR api_role IN SELECT rolname FROM pg_roles WHERE rolname IN ('anon','authenticated') LOOP
       EXECUTE format('REVOKE ALL ON TABLE %I FROM %I',app_table,api_role);

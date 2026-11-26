@@ -42,11 +42,11 @@ export async function databaseReady(): Promise<boolean> {
   if (!pool) return false;
   try {
     const required = await pool.query(
-      `SELECT bool_and(to_regclass(name) IS NOT NULL) AS ready FROM unnest(ARRAY['organizations','users','memberships','services','service_checks','incidents','incident_events','ai_analyses','telemetry_events','workspace_invites','runtime_sources','runtime_resources']) AS name`,
+      `SELECT bool_and(to_regclass(name) IS NOT NULL) AS ready FROM unnest(ARRAY['organizations','users','memberships','services','service_checks','incidents','incident_events','ai_analyses','telemetry_events','workspace_invites','runtime_sources','runtime_resources','runtime_connections','runtime_lab_sessions']) AS name`,
     );
     if (!required.rows[0]?.ready) return false;
     await pool.query(
-      `SELECT i.runtime_resource_id,r.source_id,a.context_hash,w.token_hash FROM incidents i,runtime_resources r,ai_analyses a,workspace_invites w LIMIT 0`,
+      `SELECT i.runtime_resource_id,i.is_test,r.source_id,s.is_test,rs.origin,c.selector,a.context_hash,w.token_hash FROM incidents i,runtime_resources r,services s,runtime_sources rs,runtime_connections c,ai_analyses a,workspace_invites w LIMIT 0`,
     );
     return true;
   } catch {
