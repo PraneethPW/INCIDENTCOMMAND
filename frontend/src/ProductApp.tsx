@@ -698,6 +698,7 @@ function AnalysisResult({
         </div>
         <strong>Correlating live evidence</strong>
         <span>Reviewing timeline · health checks · telemetry</span>
+        <span>Analysis may take up to a minute when the provider is busy.</span>
         <div className="loader-bar">
           <i />
         </div>
@@ -731,11 +732,6 @@ function AnalysisResult({
     );
   return (
     <div className="analysis-result">
-      {analysis.warning && (
-        <div className="analysis-warning">
-          <AlertCircle /> <span>{analysis.warning}</span>
-        </div>
-      )}
       <div className="analysis-score">
         <div style={{ "--score": `${analysis.confidence}%` } as CSSProperties}>
           <strong>{analysis.confidence}%</strong>
@@ -968,6 +964,10 @@ function CommandCenter({
     setError("");
     try {
       const result = await api.analyze(incidentId);
+      if (result.stale && selectedId.current === incidentId)
+        setAnalysisError(
+          result.warning || "The AI provider is unavailable. Showing the last saved analysis; newer evidence has not been analyzed.",
+        );
       setSelected((current) =>
         current?.id === incidentId ? { ...current, analysis: result } : current,
       );
@@ -986,7 +986,7 @@ function CommandCenter({
           : cause instanceof Error
             ? cause.message
             : "Analysis failed";
-      setAnalysisError(message);
+      if (selectedId.current === incidentId) setAnalysisError(message);
     } finally {
       setAnalysisLoading(false);
     }
@@ -1753,7 +1753,9 @@ function CommandCenter({
               )}
               {selected ? (
                 <AnalysisResult
-                  analysis={selected.analysis}
+                  analysis={analysisError && selected.analysis
+                    ? { ...selected.analysis, stale: true }
+                    : selected.analysis}
                   loading={analysisLoading}
                   aiConfigured={config.aiConfigured}
                   canAnalyze={canWrite}

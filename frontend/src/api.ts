@@ -28,7 +28,7 @@ export const ingestUrl = (id: string) =>
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(apiUrl(url), {
     credentials: "include",
-    signal: AbortSignal.timeout(url.endsWith("/analyze") ? 50_000 : 20_000),
+    signal: AbortSignal.timeout(url.endsWith("/analyze") ? 75_000 : 20_000),
     ...init,
     headers: { "Content-Type": "application/json", ...init?.headers },
   });

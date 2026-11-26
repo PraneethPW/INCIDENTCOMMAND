@@ -54,7 +54,7 @@ test("AI retries reasoning-only truncated output without requiring a fallback mo
   assert.equal(requests.length, 2);
   assert.equal(requests[1].model, "test/primary");
   assert.ok(Number(requests[1].max_tokens) > Number(requests[0].max_tokens));
-  assert.deepEqual(requests[0].reasoning, { effort: "low", exclude: true });
+  assert.deepEqual(requests[0].reasoning, { enabled: false, exclude: true });
 });
 
 test("AI respects configured fallback order after a provider failure", async () => {
