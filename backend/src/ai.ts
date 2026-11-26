@@ -126,7 +126,7 @@ export async function analyzeIncident(context: unknown): Promise<Analysis> {
         "https://openrouter.ai/api/v1/chat/completions",
         {
           method: "POST",
-          signal: AbortSignal.timeout(20_000),
+          signal: AbortSignal.timeout(30_000),
           headers: {
             Authorization: `Bearer ${apiKey}`,
             "Content-Type": "application/json",
@@ -138,8 +138,8 @@ export async function analyzeIncident(context: unknown): Promise<Analysis> {
             temperature: 0.1,
             // Reasoning and visible output share this budget. Leave room for the
             // required function arguments rather than accepting reasoning-only output.
-            max_tokens: attempt ? 6144 : 4096,
-            reasoning: { effort: "low", exclude: true },
+            max_tokens: attempt ? 4096 : 2048,
+            reasoning: { enabled: false, exclude: true },
             provider: { require_parameters: true, allow_fallbacks: true },
             tools: [
               {

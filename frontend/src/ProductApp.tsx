@@ -698,6 +698,7 @@ function AnalysisResult({
         </div>
         <strong>Correlating live evidence</strong>
         <span>Reviewing timeline · health checks · telemetry</span>
+        <span>Analysis may take up to a minute when the provider is busy.</span>
         <div className="loader-bar">
           <i />
         </div>
