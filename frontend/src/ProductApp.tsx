@@ -963,7 +963,7 @@ function CommandCenter({
     setError("");
     try {
       const result = await api.analyze(incidentId);
-      if (result.stale)
+      if (result.stale && selectedId.current === incidentId)
         setAnalysisError(
           result.warning || "The AI provider is unavailable. Showing the last saved analysis; newer evidence has not been analyzed.",
         );
@@ -985,7 +985,7 @@ function CommandCenter({
           : cause instanceof Error
             ? cause.message
             : "Analysis failed";
-      setAnalysisError(message);
+      if (selectedId.current === incidentId) setAnalysisError(message);
     } finally {
       setAnalysisLoading(false);
     }
