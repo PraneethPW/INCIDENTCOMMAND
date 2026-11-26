@@ -3739,3 +3739,280 @@ body {
 [data-motion="reduced"] .primary-button::after {
   display: none;
 }
+.runtime-workspace {
+  display: grid;
+  gap: 22px;
+}
+.runtime-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid #513629;
+  padding-bottom: 12px;
+}
+.runtime-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #1c1612;
+  color: #c1aca0;
+  border: 1px solid #513629;
+  padding: 12px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.runtime-tabs button[aria-selected="true"] {
+  color: #ffb57d;
+  background: #ff8b4519;
+  border-color: #ef874c;
+}
+.runtime-section-head {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.runtime-section-head h3 {
+  margin: 0 0 6px;
+}
+.runtime-section-head p,
+.runtime-connect-form p,
+.runtime-lab-session > p {
+  color: #bea99a;
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 6px 0;
+}
+.runtime-section-head label {
+  color: #bea99a;
+  font-size: 12px;
+}
+.runtime-connection-grid,
+.runtime-lab-launch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin: 20px 0;
+}
+.runtime-connection,
+.runtime-lab-launch article,
+.runtime-lab-session {
+  padding: 24px;
+  min-width: 0;
+}
+.runtime-connection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.runtime-connection small {
+  color: #aa978a;
+}
+.runtime-endpoint {
+  overflow-wrap: anywhere;
+  color: #d7bda9;
+  font-size: 12px;
+}
+.runtime-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 14px;
+}
+.runtime-actions button[aria-pressed="true"] {
+  border-color: #ff9a5c;
+  color: #ffb57d;
+}
+.runtime-workspace .secondary-button,
+.runtime-connect-form .secondary-button {
+  border: 1px solid #684732;
+  border-radius: 4px;
+  background: #231911;
+  padding: 9px 12px;
+  color: #e7c9b2;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.runtime-workspace .secondary-button:hover,
+.runtime-connect-form .secondary-button:hover {
+  background: #392419;
+  border-color: #ff9a5c;
+}
+.runtime-onboarding {
+  padding: 28px;
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  margin-top: 20px;
+}
+.runtime-onboarding > svg {
+  flex-shrink: 0;
+  color: #ff9a5c;
+}
+.runtime-onboarding p,
+.runtime-lab-launch p {
+  color: #bea99a;
+  line-height: 1.8;
+  font-size: 13px;
+}
+.runtime-onboarding button {
+  flex-shrink: 0;
+}
+.runtime-lab-notice {
+  display: flex;
+  gap: 14px;
+  background: #e6853812;
+  border: 1px solid #9d6339;
+  border-radius: 6px;
+  padding: 17px 20px;
+  color: #f0bd92;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.runtime-lab-notice svg {
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+.runtime-lab-notice p {
+  margin: 4px 0 0;
+  color: #cbb09a;
+}
+.runtime-lab-launch article > svg {
+  color: #ff9a5c;
+}
+.runtime-lab-session {
+  margin-top: 18px;
+}
+.runtime-lab-session h3 small {
+  color: #aa978a;
+  font-size: 12px;
+}
+.runtime-lab-resources {
+  display: grid;
+  gap: 10px;
+  margin: 20px 0;
+}
+.runtime-lab-resources > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #130f0c;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #bea99a;
+}
+.runtime-lab-results {
+  padding-top: 16px;
+  border-top: 1px solid #483125;
+  font-size: 13px;
+}
+.runtime-lab-results > button {
+  width: 100%;
+  background: #241a13;
+  color: #f2d8c5;
+  border: 1px solid #513629;
+  padding: 14px;
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+  text-align: left;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.runtime-lab-results > button span {
+  font-size: 11px;
+  color: #e9a16b;
+}
+.runtime-end-lab {
+  background: none;
+  border: none;
+  padding: 18px 0 0;
+  color: #b9a08d;
+  cursor: pointer;
+  font-size: 12px;
+}
+.runtime-connect-form {
+  display: grid;
+  gap: 16px;
+}
+.runtime-connect-form fieldset {
+  display: grid;
+  gap: 16px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.runtime-connect-form .field {
+  display: grid;
+  gap: 8px;
+}
+.runtime-connect-form input,
+.runtime-connect-form select {
+  width: 100%;
+  min-width: 0;
+}
+.runtime-connect-form details {
+  border: 1px solid #513629;
+  border-radius: 5px;
+  padding: 14px;
+  color: #cfb6a3;
+  font-size: 13px;
+}
+.runtime-connect-form summary {
+  cursor: pointer;
+}
+.runtime-connect-form details .field {
+  margin-top: 12px;
+}
+.runtime-connect-form small {
+  color: #ad9583;
+  line-height: 1.7;
+}
+.runtime-portainer {
+  display: grid;
+  gap: 12px;
+}
+.runtime-portainer > button {
+  justify-self: start;
+}
+.runtime-preview {
+  border: 1px solid #61805a;
+  padding: 16px;
+  color: #bddea9;
+  border-radius: 4px;
+}
+.runtime-preview p {
+  overflow-wrap: anywhere;
+}
+.runtime-workspace button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+.runtime-workspace button:focus-visible,
+.runtime-connect-form summary:focus-visible {
+  outline: 2px solid #ffb57d;
+  outline-offset: 4px;
+}
+@media (max-width: 800px) {
+  .runtime-connection-grid,
+  .runtime-lab-launch {
+    grid-template-columns: 1fr;
+  }
+  .runtime-onboarding {
+    flex-direction: column;
+  }
+  .runtime-connection,
+  .runtime-lab-launch article,
+  .runtime-lab-session {
+    padding: 18px;
+  }
+}

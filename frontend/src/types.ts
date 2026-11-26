@@ -6,7 +6,11 @@ export type IncidentStatus =
   | "resolved";
 
 export interface AppConfig {
-  capabilities?: { operatorControls: boolean; runtimeTracking?: boolean };
+  capabilities?: {
+    operatorControls: boolean;
+    runtimeTracking?: boolean;
+    runtimeWorkspace?: boolean;
+  };
   databaseConfigured: boolean;
   databaseProvider?: string;
   databaseReady: boolean;
@@ -32,6 +36,8 @@ export interface IncidentEvent {
   actorName?: string;
 }
 export interface Incident {
+  isTest?: boolean;
+  runtimeResourceId?: string | null;
   id: string;
   code: string;
   title: string;
@@ -165,4 +171,61 @@ export interface RuntimeResource {
 export interface Infrastructure {
   sources: RuntimeSource[];
   resources: RuntimeResource[];
+}
+export interface RuntimeConnection {
+  id: string;
+  serviceId: string;
+  name: string;
+  provider: "docker" | "portainer" | "kubernetes";
+  endpointUrl: string;
+  namespace: string;
+  environmentId: number | null;
+  selector: string;
+  intervalSeconds: number;
+  enabled: boolean;
+  lastStatus: string;
+  lastError: string | null;
+  lastCheckedAt: string | null;
+}
+export interface RuntimeConnectionInput {
+  name: string;
+  provider: RuntimeConnection["provider"];
+  endpointUrl: string;
+  namespace: string;
+  environmentId?: number;
+  serviceId?: string;
+  selector: string;
+  intervalSeconds: number;
+  token: string;
+  certificateAuthority: string;
+  clientCertificate: string;
+  clientKey: string;
+}
+export interface RuntimeLabs {
+  sessions: {
+    id: string;
+    serviceId: string;
+    name: string;
+    platform: "docker" | "kubernetes";
+    scenario: string;
+    updatedAt: string;
+    endedAt: string | null;
+  }[];
+  resources: Pick<
+    RuntimeResource,
+    | "id"
+    | "serviceId"
+    | "kind"
+    | "name"
+    | "status"
+    | "reason"
+    | "present"
+    | "ready"
+    | "desired"
+    | "restartCount"
+  >[];
+  incidents: Pick<
+    Incident,
+    "id" | "code" | "title" | "status" | "severity" | "serviceId"
+  >[];
 }

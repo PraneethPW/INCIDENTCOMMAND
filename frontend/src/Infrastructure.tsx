@@ -21,12 +21,14 @@ export function InfrastructurePanel({
   user,
   onConnectService,
   onOpenIncident,
+  webWorkspace = false,
 }: {
   data: Infrastructure;
   services: Service[];
   user: User;
   onConnectService: () => void;
   onOpenIncident: (id: string) => Promise<void>;
+  webWorkspace?: boolean;
 }) {
   const [platform, setPlatform] = useState("all");
   const [health, setHealth] = useState("all");
@@ -56,22 +58,24 @@ export function InfrastructurePanel({
   };
   return (
     <section className="infrastructure-layout">
-      <div className="runtime-intro panel">
-        <div>
-          <span className="runtime-kicker">DOCKER / KUBERNETES</span>
-          <h2>Every workload. One response.</h2>
-          <p>
-            Follow container health and cluster workloads from their first
-            signal to a verified recovery.
-          </p>
+      {!webWorkspace && (
+        <div className="runtime-intro panel">
+          <div>
+            <span className="runtime-kicker">DOCKER / KUBERNETES</span>
+            <h2>Every workload. One response.</h2>
+            <p>
+              Follow container health and cluster workloads from their first
+              signal to a verified recovery.
+            </p>
+          </div>
+          <button
+            className="primary-button compact"
+            onClick={() => setSetup(true)}
+          >
+            <Terminal size={17} /> Connect collector
+          </button>
         </div>
-        <button
-          className="primary-button compact"
-          onClick={() => setSetup(true)}
-        >
-          <Terminal size={17} /> Connect collector
-        </button>
-      </div>
+      )}
       <div className="runtime-metrics">
         {[
           ["Docker containers", counts.docker],
@@ -121,7 +125,7 @@ export function InfrastructurePanel({
         </select>
       </div>
       {data.sources.length > 0 && (
-        <div className="runtime-sources" aria-label="Collector heartbeats">
+        <div className="runtime-sources" aria-label="Runtime observations">
           {data.sources.map((s) => (
             <div key={s.id} className={s.stale ? "collector-stale" : ""}>
               {s.stale ? <WifiOff size={15} /> : <span className="live-dot" />}
@@ -130,7 +134,7 @@ export function InfrastructurePanel({
                 {s.platform} · {s.resourceCount} resources
               </span>
               <small>
-                {s.stale ? "Heartbeat overdue" : "Collector reporting"} ·{" "}
+                {s.stale ? "Observation overdue" : "Inventory received"} ·{" "}
                 {date(s.observedAt)}
               </small>
             </div>
@@ -145,12 +149,14 @@ export function InfrastructurePanel({
             Connect a Docker host or a Kubernetes namespace. Observed failures
             will open incidents in your existing queue.
           </p>
-          <button
-            className="primary-button compact"
-            onClick={() => setSetup(true)}
-          >
-            Set up a collector
-          </button>
+          {!webWorkspace && (
+            <button
+              className="primary-button compact"
+              onClick={() => setSetup(true)}
+            >
+              Set up a collector
+            </button>
+          )}
         </div>
       ) : (
         <div className="panel runtime-inventory">
@@ -242,7 +248,7 @@ export function InfrastructurePanel({
       <div className="runtime-boundary">
         <ShieldCheck size={18} />
         <p>
-          Collectors observe runtime state. Incident decisions, notes, and AI
+          Runtime connections observe state. Incident decisions, notes, and AI
           investigation stay in your workspace. Disappearing workloads keep
           their incident open for review.
         </p>

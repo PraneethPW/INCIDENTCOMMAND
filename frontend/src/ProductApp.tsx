@@ -1,5 +1,6 @@
 import { MotionToggle } from "./MotionPreferences";
 import { InfrastructurePanel } from "./Infrastructure";
+import { RuntimeWorkspace } from "./RuntimeWorkspace";
 import {
   Dialog,
   ServiceControls,
@@ -801,6 +802,7 @@ function CommandCenter({
   const [view, setView] = useState<View>("overview");
   const [overview, setOverview] = useState<Overview>(emptyOverview);
   const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [incidentScope, setIncidentScope] = useState("live");
   const [services, setServices] = useState<Service[]>([]);
   const [infrastructure, setInfrastructure] = useState<Infrastructure>({
     sources: [],
@@ -845,7 +847,7 @@ function CommandCenter({
       const [nextOverview, nextIncidents, nextServices, nextInfrastructure] =
         await Promise.all([
           api.overview(),
-          api.incidents(),
+          api.incidents(incidentScope),
           api.services(),
           runtimeTrackingReady
             ? api.infrastructure()
@@ -884,7 +886,7 @@ function CommandCenter({
     } finally {
       if (version === refreshVersion.current) setLoading(false);
     }
-  }, [onWorkspaceChanged, runtimeTrackingReady]);
+  }, [onWorkspaceChanged, runtimeTrackingReady, incidentScope]);
   // oxlint-disable-next-line react/set-state-in-effect -- initial state comes from authenticated API resources.
   useEffect(() => {
     void Promise.resolve().then(refresh);
@@ -966,7 +968,8 @@ function CommandCenter({
       const result = await api.analyze(incidentId);
       if (result.stale && selectedId.current === incidentId)
         setAnalysisError(
-          result.warning || "The AI provider is unavailable. Showing the last saved analysis; newer evidence has not been analyzed.",
+          result.warning ||
+            "The AI provider is unavailable. Showing the last saved analysis; newer evidence has not been analyzed.",
         );
       setSelected((current) =>
         current?.id === incidentId ? { ...current, analysis: result } : current,
@@ -1230,15 +1233,17 @@ function CommandCenter({
         {operatorControlsReady && view === "team" && (
           <TeamPanel user={user} onWorkspaceChanged={onWorkspaceChanged} />
         )}
-        {view === "infrastructure" && (
-          <InfrastructurePanel
+        {view === "infrastructure" && config.capabilities?.runtimeWorkspace && (
+          <RuntimeWorkspace
             data={infrastructure}
             services={services}
             user={user}
-            onConnectService={() => setModal("service")}
+            onRefresh={refresh}
             onOpenIncident={async (id) => {
               try {
-                await selectIncident(await api.incident(id));
+                const detail = await api.incident(id);
+                setIncidentScope(detail.isTest ? "test" : "live");
+                await selectIncident(detail);
               } catch (cause) {
                 setError(
                   cause instanceof Error
@@ -1249,6 +1254,26 @@ function CommandCenter({
             }}
           />
         )}
+        {view === "infrastructure" &&
+          !config.capabilities?.runtimeWorkspace && (
+            <InfrastructurePanel
+              data={infrastructure}
+              services={services}
+              user={user}
+              onConnectService={() => setModal("service")}
+              onOpenIncident={async (id) => {
+                try {
+                  await selectIncident(await api.incident(id));
+                } catch (cause) {
+                  setError(
+                    cause instanceof Error
+                      ? cause.message
+                      : "Unable to load incident",
+                  );
+                }
+              }}
+            />
+          )}
         {showActivity && (
           <Dialog
             title="Workspace activity"
@@ -1519,6 +1544,21 @@ function CommandCenter({
                   />
                 </label>
                 <div>
+                  {config.capabilities?.runtimeWorkspace && (
+                    <select
+                      aria-label="Incident data scope"
+                      value={incidentScope}
+                      onChange={(e) => {
+                        setIncidentScope(e.target.value);
+                        selectedId.current = null;
+                        setSelected(null);
+                      }}
+                    >
+                      <option value="live">Live incidents</option>
+                      <option value="test">Test lab incidents</option>
+                      <option value="all">Live + test incidents</option>
+                    </select>
+                  )}
                   <select
                     aria-label="Filter by status"
                     value={statusFilter}
@@ -1569,6 +1609,12 @@ function CommandCenter({
                         {selected.code} · {timeAgo(selected.startedAt)}
                       </small>
                     </div>
+                    {selected.isTest && (
+                      <p className="runtime-lab-notice">
+                        TEST LAB · Controlled simulation. No live infrastructure
+                        was changed.
+                      </p>
+                    )}
                     <h2>{selected.title}</h2>
                     <p>{selected.description}</p>
                   </div>
@@ -1576,14 +1622,20 @@ function CommandCenter({
                     <div>
                       <span>REPORTED LATENCY</span>
                       <strong>
-                        {selected.latencyMs ?? "—"}
-                        {selected.latencyMs ? " ms" : ""}
+                        {selected.runtimeResourceId
+                          ? "—"
+                          : (selected.latencyMs ?? "—")}
+                        {!selected.runtimeResourceId && selected.latencyMs
+                          ? " ms"
+                          : ""}
                       </strong>
                     </div>
                     <div>
                       <span>ERROR RATE</span>
                       <strong>
-                        {selected.errorRate ?? "—"}
+                        {selected.runtimeResourceId
+                          ? "—"
+                          : (selected.errorRate ?? "—")}
                         {selected.errorRate ? "%" : ""}
                       </strong>
                     </div>
@@ -1624,7 +1676,7 @@ function CommandCenter({
                       }
                       onClick={() => void runAnalysis()}
                     >
-                      <BrainCircuit /> Analyze real evidence
+                      <BrainCircuit /> Analyze evidence
                     </button>
                   </div>
                   {operatorControlsReady && (
@@ -1692,7 +1744,10 @@ function CommandCenter({
                         if (target) void selectIncident(target, "intelligence");
                       }}
                     >
-                      {incidents.map((item) => (
+                      {(incidents.some((i) => i.id === selected.id)
+                        ? incidents
+                        : [selected, ...incidents]
+                      ).map((item) => (
                         <option key={item.id} value={item.id}>
                           {item.code} · {item.title}
                         </option>
@@ -1708,6 +1763,11 @@ function CommandCenter({
                       {severityLabel[selected.severity]}
                     </span>
                   </div>
+                  {selected.isTest && (
+                    <p className="runtime-lab-notice">
+                      TEST LAB · Analysis uses simulated observations.
+                    </p>
+                  )}
                   <h3>{selected.title}</h3>
                   <p>{selected.description}</p>
                   <div className="context-source">
@@ -1753,9 +1813,11 @@ function CommandCenter({
               )}
               {selected ? (
                 <AnalysisResult
-                  analysis={analysisError && selected.analysis
-                    ? { ...selected.analysis, stale: true }
-                    : selected.analysis}
+                  analysis={
+                    analysisError && selected.analysis
+                      ? { ...selected.analysis, stale: true }
+                      : selected.analysis
+                  }
                   loading={analysisLoading}
                   aiConfigured={config.aiConfigured}
                   canAnalyze={canWrite}

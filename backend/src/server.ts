@@ -26,6 +26,10 @@ import {
 } from "./security.js";
 import { workspace } from "./workspace.js";
 import { runtime } from "./runtime.js";
+import {
+  runtimeWorkspace,
+  startRuntimeConnections,
+} from "./runtime-workspace.js";
 import { databaseProvider } from "./connection.js";
 
 export const app = express();
@@ -87,13 +91,17 @@ const incidentSelect = `
   SELECT i.id, i.code, i.title, i.service, i.service_id AS "serviceId", i.severity, i.status, i.region,
     i.source, i.description, i.impact, i.latency_ms AS "latencyMs", i.error_rate::float AS "errorRate",
     i.started_at AS "startedAt", i.acknowledged_at AS "acknowledgedAt", i.resolved_at AS "resolvedAt",
-    i.updated_at AS "updatedAt", i.runtime_resource_id AS "runtimeResourceId", u.name AS "assigneeName", i.assigned_to AS "assignedTo"
+    i.is_test AS "isTest", i.updated_at AS "updatedAt", i.runtime_resource_id AS "runtimeResourceId", u.name AS "assigneeName", i.assigned_to AS "assignedTo"
   FROM incidents i LEFT JOIN users u ON u.id=i.assigned_to`;
 
 app.get("/api/config", async (_req, res) => {
   res.json({
     data: {
-      capabilities: { operatorControls: true, runtimeTracking: true },
+      capabilities: {
+        operatorControls: true,
+        runtimeTracking: true,
+        runtimeWorkspace: true,
+      },
       databaseConfigured: Boolean(process.env.DATABASE_URL),
       databaseProvider: databaseProvider(process.env.DATABASE_URL),
       databaseReady: await databaseReady(),
@@ -245,6 +253,7 @@ app.use("/api", (req, res, next) =>
 );
 
 app.use("/api", runtime);
+app.use("/api", runtimeWorkspace);
 
 app.get("/api/overview", async (req, res) => {
   const db = requirePool();
@@ -255,25 +264,25 @@ app.get("/api/overview", async (req, res) => {
       COUNT(*) FILTER (WHERE status <> 'resolved')::int AS active,
       COUNT(*) FILTER (WHERE severity='critical' AND status <> 'resolved')::int AS critical,
       COALESCE(ROUND(AVG(EXTRACT(EPOCH FROM (resolved_at-started_at))/60) FILTER (WHERE resolved_at > NOW()-INTERVAL '30 days')),0)::int AS "mttrMinutes",
-      (SELECT COUNT(*)::int FROM services WHERE organization_id=$1) AS "servicesTotal",
-      (SELECT COUNT(*)::int FROM services WHERE organization_id=$1 AND current_status='healthy') AS "servicesHealthy",
+      (SELECT COUNT(*)::int FROM services WHERE organization_id=$1 AND NOT is_test) AS "servicesTotal",
+      (SELECT COUNT(*)::int FROM services WHERE organization_id=$1 AND NOT is_test AND current_status='healthy') AS "servicesHealthy",
       COUNT(*) FILTER (WHERE created_at > NOW()-INTERVAL '1 hour')::int AS "alertVelocity"
-      FROM incidents WHERE organization_id=$1`,
+      FROM incidents WHERE organization_id=$1 AND NOT is_test`,
       [org],
     ),
     db.query(
       `SELECT to_char(bucket,'HH24:MI') AS time, COUNT(i.id)::int AS incidents
       FROM generate_series(NOW()-INTERVAL '24 hours',NOW()-INTERVAL '4 hours',INTERVAL '4 hours') bucket
-      LEFT JOIN incidents i ON i.organization_id=$1 AND i.started_at>=bucket AND i.started_at<bucket+INTERVAL '4 hours'
+      LEFT JOIN incidents i ON i.organization_id=$1 AND NOT i.is_test AND i.started_at>=bucket AND i.started_at<bucket+INTERVAL '4 hours'
       GROUP BY bucket ORDER BY bucket`,
       [org],
     ),
     db.query(
-      `SELECT severity AS name, COUNT(*)::int AS value FROM incidents WHERE organization_id=$1 AND status<>'resolved' GROUP BY severity`,
+      `SELECT severity AS name, COUNT(*)::int AS value FROM incidents WHERE organization_id=$1 AND NOT is_test AND status<>'resolved' GROUP BY severity`,
       [org],
     ),
     db.query(
-      `${incidentSelect} WHERE i.organization_id=$1 ORDER BY i.started_at DESC LIMIT 5`,
+      `${incidentSelect} WHERE i.organization_id=$1 AND NOT i.is_test ORDER BY i.started_at DESC LIMIT 5`,
       [org],
     ),
   ]);
@@ -299,9 +308,12 @@ app.get("/api/overview", async (req, res) => {
 });
 
 app.get("/api/incidents", async (req, res) => {
+  const scope = z
+    .enum(["live", "test", "all"])
+    .parse(req.query.scope || "live");
   const result = await requirePool().query(
-    `${incidentSelect} WHERE i.organization_id=$1 ORDER BY CASE WHEN i.status='resolved' THEN 1 ELSE 0 END,i.started_at DESC LIMIT 100`,
-    [req.user!.organizationId],
+    `${incidentSelect} WHERE i.organization_id=$1 AND ($2='all' OR i.is_test=($2='test')) ORDER BY CASE WHEN i.status='resolved' THEN 1 ELSE 0 END,i.started_at DESC LIMIT 100`,
+    [req.user!.organizationId, scope],
   );
   res.json({ data: result.rows });
 });
@@ -467,7 +479,7 @@ app.post(
         : Promise.resolve({ rows: [] }),
       incident.rows[0].runtimeResourceId
         ? db.query(
-            `SELECT r.uid,r.name,r.kind,r.namespace,r.status,r.reason,r.image,r.restart_count,r.ready,r.desired,r.present,r.observed_at,rs.platform,rs.cluster,rs.interval_seconds,
+            `SELECT r.uid,r.name,r.kind,r.namespace,r.status,r.reason,r.image,r.restart_count,r.ready,r.desired,r.present,r.observed_at,rs.platform,rs.cluster,rs.origin,rs.interval_seconds,
             (NOW()-rs.observed_at > make_interval(secs => GREATEST(90,rs.interval_seconds*3))) AS stale
             FROM runtime_resources r JOIN runtime_sources rs ON rs.id=r.source_id WHERE r.organization_id=$1 AND r.id=$2`,
             [org, incident.rows[0].runtimeResourceId],
@@ -482,12 +494,16 @@ app.post(
       runtime: runtimeEvidence.rows,
     };
     const contextHash = createHash("sha256")
-      .update(JSON.stringify({
-        ...context,
-        // A heartbeat alone is not new diagnostic evidence. Health, presence,
-        // restarts and the computed stale flag still invalidate the analysis.
-        runtime: context.runtime.map(({ observed_at: _observedAt, ...state }) => state),
-      }))
+      .update(
+        JSON.stringify({
+          ...context,
+          // A heartbeat alone is not new diagnostic evidence. Health, presence,
+          // restarts and the computed stale flag still invalidate the analysis.
+          runtime: context.runtime.map(
+            ({ observed_at: _observedAt, ...state }) => state,
+          ),
+        }),
+      )
       .digest("hex");
     const latest = await db.query(
       `SELECT summary,probable_cause AS "probableCause",confidence,evidence,recommendations,model,context_hash AS "contextHash",created_at AS "createdAt",'openrouter' AS source FROM ai_analyses WHERE organization_id=$1 AND incident_id=$2 ORDER BY created_at DESC LIMIT 1`,
@@ -553,7 +569,7 @@ app.post(
 
 app.get("/api/services", async (req, res) => {
   const result = await requirePool().query(
-    `SELECT id,name,slug,description,region,health_url AS "healthUrl",expected_status AS "expectedStatus",check_interval_seconds AS "checkIntervalSeconds",monitoring_enabled AS "monitoringEnabled",CASE WHEN $2='viewer' THEN NULL ELSE ingest_key END AS "ingestKey",current_status AS "currentStatus",consecutive_failures AS "consecutiveFailures",last_checked_at AS "lastCheckedAt",created_at AS "createdAt" FROM services WHERE organization_id=$1 ORDER BY name`,
+    `SELECT id,name,slug,description,region,health_url AS "healthUrl",expected_status AS "expectedStatus",check_interval_seconds AS "checkIntervalSeconds",monitoring_enabled AS "monitoringEnabled",CASE WHEN $2='viewer' THEN NULL ELSE ingest_key END AS "ingestKey",current_status AS "currentStatus",consecutive_failures AS "consecutiveFailures",last_checked_at AS "lastCheckedAt",created_at AS "createdAt" FROM services WHERE organization_id=$1 AND NOT is_test ORDER BY name`,
     [req.user!.organizationId, req.user!.role],
   );
   res.json({ data: result.rows });
@@ -860,11 +876,13 @@ app.use(
 if (process.env.NODE_ENV !== "test") {
   const stopRealtime = startRealtime();
   const stopMonitor = startMonitor();
+  const stopRuntime = startRuntimeConnections();
   const server = app.listen(port, () =>
     console.log(`Incident Command API online at http://localhost:${port}`),
   );
   const stop = () => {
     stopMonitor();
+    stopRuntime();
     stopRealtime();
     server.close(() => {
       void pool?.end().then(() => process.exit(0));

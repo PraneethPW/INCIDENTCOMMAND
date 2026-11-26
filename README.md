@@ -1,6 +1,6 @@
 # Incident Command AI
 
-A real-time, multi-user incident operations platform. The application starts with zero operational records and uses only data created by signed-in users, monitored health endpoints, or authenticated telemetry ingest.
+A real-time, multi-user incident operations platform. Live workspaces start empty and use operator records, monitored health endpoints, authenticated telemetry, and connected runtime APIs. An opt-in browser lab creates clearly marked test observations, separate from live metrics.
 
 ## 1. Install dependencies
 
@@ -104,11 +104,14 @@ See [the operations runbook](docs/OPERATIONS.md) for deployment, database replac
 
 ## Docker and Kubernetes tracking
 
-Open **Infrastructure** to connect Docker hosts and Kubernetes namespaces to your existing services. The collector tracks container health, restarts, OOM failures, Pod readiness/crash loops, image pull failures, and workload replica availability. Failures open resource-specific incidents; verified recovery resolves them. The inventory flags missing resources and stale collectors and links directly to incident timelines and AI investigation.
+Open **Infrastructure**. Choose either workflow directly in the web app:
 
-Run `npm run collector` on the monitored host using the setup commands in the UI. The namespace-scoped Kubernetes collector manifest is in `deploy/kubernetes/collector.yaml`. Dockerfiles and `compose.yaml` also support running the application locally in containers, using the existing app-specific environment files.
+- **Live connections → Add connection**: connect Docker through Portainer (discover and select an environment), a secured Docker Engine API, or a Kubernetes API and namespace. Enter the HTTPS URL and read credentials, test access, then save. A service is created automatically unless you select an existing one. Inventory syncs every 30–300 seconds; Refresh, Pause/Resume, Reconnect and Remove are available in the same screen.
+- **Browser test lab**: start a Docker or Kubernetes lab and choose a failure scenario. Inspect its test incident, timeline and optional AI analysis, then select **Restore healthy** to verify simulated recovery. Ending a session retains its history. No container or cluster is executed or modified by this lab. Test services/incidents stay out of live dashboard metrics and are available through the incident queue's **Test lab incidents** filter.
 
-See [Docker and Kubernetes setup, detection rules, deployment and verification](docs/CONTAINER-TRACKING.md). This adds the monitoring foundation for the proposed Digital Twin lab; executable remediation experiments require a separate isolated worker and are not part of this tracking release.
+Real connections require an existing public, reachable HTTPS runtime API. The hosted app cannot access Docker Desktop's local socket or a private cluster directly. Custom CA and client TLS PEM uploads are supported; TLS verification stays enabled. Remote requests are GET-only, pinned to validated public DNS addresses, limited in size/time, and do not follow redirects. Credentials are encrypted at rest using a key derived from the backend session secret (or optional stable `RUNTIME_CREDENTIALS_KEY`); keep that key consistent across replicas and backups. Changing it requires reconnecting saved integrations.
+
+The existing host/in-cluster collector remains an advanced option for private infrastructure. See [runtime connections, lab scenarios, detection rules and collector setup](docs/CONTAINER-TRACKING.md). No root environment file is required.
 
 ## Supabase connection and historical data
 
