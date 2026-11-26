@@ -2,7 +2,7 @@
 
 ## Local environment files
 
-Use `backend/.env` for server credentials and settings, and `frontend/.env` for public build-time frontend settings. Copy each folder's `.env.example` to create its local file. The backend loads its own file relative to the module location in either `src/` or `dist/`; Vite loads from the frontend folder. No root `.env` is required. Deployment-provided variables take precedence, and tests use the environment supplied by the test runner. Never commit the local `.env` files.
+Use `backend/.env` for server credentials and settings, and `frontend/.env` for public build-time frontend settings. Run `npm run setup:local` from the repository root to create missing files and generate the session secret without overwriting configured files. Follow the [local installation and update guide](../README.md#local-installation). The backend loads its own file relative to the module location in either `src/` or `dist/`; Vite loads from the frontend folder. No root `.env` is required. Deployment-provided variables take precedence, and tests use the environment supplied by the test runner. Never commit the local `.env` files.
 
 ## Production layout
 
@@ -15,7 +15,7 @@ Railway settings:
 - Pre-deploy: `npm run db:setup` after the release schema has been reviewed
 - Start: `npm start`
 - Healthcheck: `/api/health`
-- Node: 22 or newer
+- Node: 22.12+ or 24+
 - `NODE_ENV=production`
 - `FRONTEND_URL=https://incident-command-ai.vercel.app` (comma-separated exact origins if needed)
 - `DATABASE_URL`: the pooled PostgreSQL connection string

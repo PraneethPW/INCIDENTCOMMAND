@@ -16,7 +16,7 @@ Copy host and username from **Supabase Dashboard → Connect**, rather than gues
 
 Run `npm run db:setup --prefix backend`, or `node dist/setup-db.js` in the production image. Schema setup is additive, transactional and serialized with an advisory lock. Configure the latter as Railway's pre-deploy command. The backend health check validates required runtime and collaboration tables before declaring readiness.
 
-All 12 application tables have RLS enabled and no public-client policies; privileges are revoked from Supabase's `anon` and `authenticated` roles. The backend connects as the table owner. Its own session authentication and organization-scoped queries remain the authorization boundary. These tables are not a public Supabase client API.
+All application tables have RLS enabled and no public-client policies; privileges are revoked from Supabase's `anon` and `authenticated` roles. The backend connects as the table owner. Its own session authentication and organization-scoped queries remain the authorization boundary. These tables are not a public Supabase client API.
 
 ## Historical data migration
 
