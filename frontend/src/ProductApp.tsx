@@ -816,6 +816,7 @@ function CommandCenter({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysisError, setAnalysisError] = useState("");
   const [modal, setModal] = useState<"service" | "incident" | null>(null);
   const [toast, setToast] = useState("");
   const refreshVersion = useRef(0);
@@ -926,6 +927,7 @@ function CommandCenter({
     target: View = "incidents",
   ) {
     setView(target);
+    if (selectedId.current !== incident.id) setAnalysisError("");
     selectedId.current = incident.id;
     setSelected(incident);
     try {
@@ -961,6 +963,7 @@ function CommandCenter({
     if (!selected || analysisLoading || !canWrite) return;
     const incidentId = selected.id;
     setAnalysisLoading(true);
+    setAnalysisError("");
     setView("intelligence");
     setError("");
     try {
@@ -983,7 +986,7 @@ function CommandCenter({
           : cause instanceof Error
             ? cause.message
             : "Analysis failed";
-      setError(message);
+      setAnalysisError(message);
     } finally {
       setAnalysisLoading(false);
     }
@@ -1676,6 +1679,26 @@ function CommandCenter({
             <article className="panel intelligence-context">
               {selected ? (
                 <>
+                  <label className="field intelligence-picker">
+                    <span>INCIDENT TO ANALYZE</span>
+                    <select
+                      aria-label="Incident to analyze"
+                      value={selected.id}
+                      disabled={analysisLoading}
+                      onChange={(event) => {
+                        const target = incidents.find(
+                          (item) => item.id === event.target.value,
+                        );
+                        if (target) void selectIncident(target, "intelligence");
+                      }}
+                    >
+                      {incidents.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.code} · {item.title}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                   <div className="panel-head">
                     <div>
                       <small>ANALYSIS TARGET</small>
@@ -1713,19 +1736,36 @@ function CommandCenter({
               ) : (
                 <EmptyState
                   icon={BrainCircuit}
-                  title="Choose an incident first"
-                  text="Select an incident from the queue before starting evidence analysis."
+                  title="No incidents to analyze yet"
+                  text="Intelligence investigates recorded incidents. A service or container failure creates one automatically, or you can declare an incident with the symptoms you observed."
+                  action={canWrite ? "Declare incident" : "View incidents"}
+                  onAction={() =>
+                    canWrite ? setModal("incident") : setView("incidents")
+                  }
                 />
               )}
             </article>
             <article className="panel analysis-panel">
-              <AnalysisResult
-                analysis={selected?.analysis}
-                loading={analysisLoading}
-                aiConfigured={config.aiConfigured}
-                canAnalyze={canWrite && Boolean(selected)}
-                onRun={() => void runAnalysis()}
-              />
+              {analysisError && (
+                <div className="analysis-warning" role="alert">
+                  <AlertCircle /> <span>{analysisError}</span>
+                </div>
+              )}
+              {selected ? (
+                <AnalysisResult
+                  analysis={selected.analysis}
+                  loading={analysisLoading}
+                  aiConfigured={config.aiConfigured}
+                  canAnalyze={canWrite}
+                  onRun={() => void runAnalysis()}
+                />
+              ) : (
+                <EmptyState
+                  icon={BrainCircuit}
+                  title="Waiting for an incident"
+                  text="Once an incident is recorded, choose it here and run an analysis of its actual timeline, health checks, telemetry, and runtime observations."
+                />
+              )}
             </article>
           </section>
         )}
