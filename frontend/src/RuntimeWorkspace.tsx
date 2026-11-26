@@ -101,9 +101,29 @@ export function RuntimeWorkspace({
         className="runtime-tabs"
         role="tablist"
         aria-label="Runtime workspace"
+        onKeyDown={(event) => {
+          if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key))
+            return;
+          event.preventDefault();
+          const next =
+            event.key === "Home"
+              ? "live"
+              : event.key === "End"
+                ? "lab"
+                : tab === "live"
+                  ? "lab"
+                  : "live";
+          setTab(next);
+          event.currentTarget
+            .querySelector<HTMLButtonElement>(`#runtime-tab-${next}`)
+            ?.focus();
+        }}
       >
         <button
           role="tab"
+          id="runtime-tab-live"
+          aria-controls="runtime-panel-live"
+          tabIndex={tab === "live" ? 0 : -1}
           aria-selected={tab === "live"}
           onClick={() => setTab("live")}
         >
@@ -111,6 +131,9 @@ export function RuntimeWorkspace({
         </button>
         <button
           role="tab"
+          id="runtime-tab-lab"
+          aria-controls="runtime-panel-lab"
+          tabIndex={tab === "lab" ? 0 : -1}
           aria-selected={tab === "lab"}
           onClick={() => setTab("lab")}
         >
@@ -131,8 +154,17 @@ export function RuntimeWorkspace({
         </p>
       )}
       {!loaded && <p role="status">Loading runtime workspace…</p>}
+      {busy && (
+        <p className="runtime-progress" role="status">
+          Updating runtime state…
+        </p>
+      )}
       {tab === "live" ? (
-        <div role="tabpanel" aria-label="Live connections">
+        <div
+          id="runtime-panel-live"
+          role="tabpanel"
+          aria-labelledby="runtime-tab-live"
+        >
           <div className="runtime-section-head">
             <div>
               <h3>Your connections</h3>
@@ -260,7 +292,11 @@ export function RuntimeWorkspace({
           />
         </div>
       ) : (
-        <div role="tabpanel" aria-label="Browser test lab">
+        <div
+          id="runtime-panel-lab"
+          role="tabpanel"
+          aria-labelledby="runtime-tab-lab"
+        >
           <div className="runtime-lab-notice">
             <FlaskConical size={24} />
             <div>
@@ -466,22 +502,24 @@ export function RuntimeWorkspace({
             if (!busy) setRemoving(null);
           }}
         >
-          <p>
-            Remove {removing.name} and its saved credentials? Polling stops.
-            Existing observations and incident history remain available.
-          </p>
-          <button
-            className="primary-button compact"
-            disabled={Boolean(busy)}
-            onClick={() =>
-              void act(removing.id, async () => {
-                await api.removeRuntime(removing.id);
-                setRemoving(null);
-              })
-            }
-          >
-            Remove connection
-          </button>
+          <div className="command-form runtime-connect-form">
+            <p>
+              Remove {removing.name} and its saved credentials? Polling stops.
+              Existing observations and incident history remain available.
+            </p>
+            <button
+              className="primary-button compact"
+              disabled={Boolean(busy)}
+              onClick={() =>
+                void act(removing.id, async () => {
+                  await api.removeRuntime(removing.id);
+                  setRemoving(null);
+                })
+              }
+            >
+              Remove connection
+            </button>
+          </div>
         </Dialog>
       )}
     </section>
@@ -573,7 +611,7 @@ function ConnectionDialog({
       }}
     >
       <form
-        className="runtime-connect-form"
+        className="command-form runtime-connect-form"
         onSubmit={(e) => {
           e.preventDefault();
           void action("save");
