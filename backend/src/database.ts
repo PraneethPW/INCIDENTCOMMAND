@@ -46,7 +46,7 @@ export async function databaseReady(): Promise<boolean> {
     );
     if (!required.rows[0]?.ready) return false;
     await pool.query(
-      `SELECT i.runtime_resource_id,i.is_test,r.source_id,s.is_test,rs.origin,c.selector,a.context_hash,w.token_hash FROM incidents i,runtime_resources r,services s,runtime_sources rs,runtime_connections c,ai_analyses a,workspace_invites w LIMIT 0`,
+      `SELECT i.runtime_resource_id,i.is_test,i.ml_evidence,r.source_id,s.is_test,s.ml_enabled,s.ml_last_result,rs.origin,c.selector,a.context_hash,w.token_hash,sc.ml_result FROM incidents i,runtime_resources r,services s,runtime_sources rs,runtime_connections c,ai_analyses a,workspace_invites w,service_checks sc LIMIT 0`,
     );
     return true;
   } catch {

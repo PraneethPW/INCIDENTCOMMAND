@@ -146,6 +146,14 @@ Open http://localhost:5173. Preview uses the same local API proxy and port as de
 | Intelligence is disabled or the provider reports an error | Set a valid `OPENROUTER_API_KEY` and an available model in `backend/.env`, then restart the backend. |
 | A new database has no services or incidents | Create a workspace and connect real services, or start an explicitly labelled browser lab. Setup does not seed operational records. |
 
+## Trained ML anomaly detection
+
+Open **Intelligence** to inspect the trained **Isolation Forest** latency detector, current service scores, the evaluation report and downloadable dataset ZIP. Normal application setup needs no Python installation: the existing backend runs the exported trained model.
+
+HTTP services learn a baseline from 20 prior successful checks. Two consecutive unusual scores create an ML latency incident, including when HTTP responses are still successful. Two scored normal checks verify recovery. Service availability checks, Docker/Kubernetes detection and LLM explanations retain their roles. Anomaly scores are not probabilities or proof of root cause.
+
+The model is trained on anonymized project health checks and evaluated with separately measured, controlled HTTP delay experiments. Its validation results and limitations are visible in the app. See [model training, data provenance, results and reproducibility](backend/ml/README.md). Optional developer retraining uses `npm run ml:setup`, `npm run ml:train` and `npm run ml:verify`; the committed model is ready for normal local and deployed use.
+
 ## Real-time behavior
 
 - Health endpoints are checked on their configured interval, with a 30-second minimum.

@@ -86,3 +86,9 @@ npm test --prefix backend
 ```
 
 The suite covers authentication and origin checks, organization isolation, concurrent alert deduplication, incident lifecycle/notes/ownership, key rotation, monitor recovery, rollback, invitations and viewer permissions, public health URL policy, committed SSE notifications, and AI cache/stale-provider behavior. It cleans up only its own generated records. Do not point the test suite at production.
+
+## Trained latency model
+
+The backend ships a trained Isolation Forest artifact; Python is not a runtime dependency. Monitor the version and evaluation details in Intelligence. The dataset ZIP contains anonymized project measurements and explicitly identified controlled HTTP trials. See [the model runbook](../backend/ml/README.md) for provenance, limits, retraining and test results.
+
+Schema setup adds per-check ML evidence and service baseline controls. Keep the existing Railway pre-deploy schema command. HTTP availability and workload state remain separate from statistical latency incidents. Disabling ML or resetting a baseline never verifies recovery. A URL/expected-status change starts a new baseline.

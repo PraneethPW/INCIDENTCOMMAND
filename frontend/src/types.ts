@@ -1,15 +1,13 @@
 export type Severity = "critical" | "high" | "medium" | "low";
 export type IncidentStatus =
-  | "investigating"
-  | "identified"
-  | "monitoring"
-  | "resolved";
+  "investigating" | "identified" | "monitoring" | "resolved";
 
 export interface AppConfig {
   capabilities?: {
     operatorControls: boolean;
     runtimeTracking?: boolean;
     runtimeWorkspace?: boolean;
+    trainedMl?: boolean;
   };
   databaseConfigured: boolean;
   databaseProvider?: string;
@@ -36,6 +34,7 @@ export interface IncidentEvent {
   actorName?: string;
 }
 export interface Incident {
+  mlEvidence?: MlResult | null;
   isTest?: boolean;
   runtimeResourceId?: string | null;
   id: string;
@@ -61,6 +60,8 @@ export interface Incident {
   analysis?: Analysis | null;
 }
 export interface Service {
+  mlEnabled?: boolean;
+  ml?: MlResult | null;
   id: string;
   name: string;
   slug: string;
@@ -125,6 +126,7 @@ export interface ServiceHistory {
     latencyMs: number;
     message: string;
     at: string;
+    ml?: MlResult | null;
   }[];
   telemetry: {
     eventType: string;
@@ -132,6 +134,43 @@ export interface ServiceHistory {
     message: string;
     at: string;
   }[];
+}
+export interface MlResult {
+  state: "learning" | "normal" | "anomaly" | "unavailable" | "disabled";
+  modelVersion: string;
+  baselineCount: number;
+  baselineMinimum: number;
+  latencyMs: number;
+  score?: number;
+  threshold: number;
+  baselineMedianMs?: number;
+  anomaly?: boolean;
+  explanation: string;
+  preview?: boolean;
+}
+export interface MlModel {
+  version: string;
+  algorithm: string;
+  scope: string;
+  trainedAt: string;
+  trainingSamples: number;
+  validationSamples: number;
+  baselineMinimum: number;
+  baselineWindow: number;
+  threshold: number;
+  features: string[];
+  limitations: string[];
+  datasetSha256: string;
+  trees: number;
+  test: {
+    samples: number;
+    precision: number;
+    recall: number;
+    f1: number;
+    falsePositiveRate: number;
+    confusion: { tn: number; fp: number; fn: number; tp: number };
+  };
+  controlledTest: MlModel["test"];
 }
 
 export interface RuntimeSource {

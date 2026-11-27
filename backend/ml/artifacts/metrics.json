@@ -1,0 +1,78 @@
+{
+  "algorithm": "Isolation Forest",
+  "scope": "HTTP latency anomaly detection",
+  "seed": 112,
+  "trainedAt": "2026-11-27T16:19:59.727224+00:00",
+  "datasetSha256": "6366685e3785a0ef5849a2897f8acfc719ce9d8777dbe44eb8e10d60bebcf421",
+  "versions": {
+    "python": "3.12.15",
+    "sklearn": "1.9.1",
+    "numpy": "2.4.4"
+  },
+  "features": [
+    "log_latency_ratio",
+    "log_robust_excess"
+  ],
+  "trainingSamples": 3945,
+  "validationSamples": 1602,
+  "calibrationSamples": 1362,
+  "validation": {
+    "samples": 1602,
+    "normal": 1560,
+    "anomalous": 42,
+    "precision": 0.7636363636363637,
+    "recall": 1.0,
+    "f1": 0.865979381443299,
+    "falsePositiveRate": 0.008333333333333333,
+    "averagePrecision": 1.0,
+    "confusion": {
+      "tn": 1547,
+      "fp": 13,
+      "fn": 0,
+      "tp": 42
+    }
+  },
+  "test": {
+    "samples": 1597,
+    "normal": 1555,
+    "anomalous": 42,
+    "precision": 0.75,
+    "recall": 1.0,
+    "f1": 0.8571428571428571,
+    "falsePositiveRate": 0.0090032154340836,
+    "averagePrecision": 0.9915923529754618,
+    "confusion": {
+      "tn": 1541,
+      "fp": 14,
+      "fn": 0,
+      "tp": 42
+    }
+  },
+  "controlledTest": {
+    "samples": 240,
+    "normal": 198,
+    "anomalous": 42,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "falsePositiveRate": 0.0,
+    "averagePrecision": 1.0,
+    "confusion": {
+      "tn": 198,
+      "fp": 0,
+      "fn": 0,
+      "tp": 42
+    }
+  },
+  "threshold": 0.6803482862786518,
+  "limitations": [
+    "Successful operational checks are assumed normal, not independently labelled ground truth.",
+    "Anomaly recall is measured on owned HTTP fixtures with injected response delays, not production outages.",
+    "Only HTTP latency is modelled; Docker/Kubernetes state detection remains rule-based.",
+    "A service needs 20 successful baseline observations; scores are not probabilities or root-cause proof.",
+    "Time-ordered operational splits and disjoint controlled runs prevent random adjacent-row leakage.",
+    "Held-out baseline updates use prior model predictions; ground-truth fault labels never prepare features."
+  ],
+  "version": "latency-iforest-b38d43057bbc",
+  "modelSha256": "b38d43057bbc208f74b09330b59270b84ec63ef8beeab5786cf1d7616bb26bec"
+}

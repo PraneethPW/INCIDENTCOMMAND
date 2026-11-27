@@ -3,6 +3,11 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
+    "ml:setup": "node scripts/ml.mjs setup",
+    "ml:export": "npm run build --prefix backend && node backend/ml/export.mjs",
+    "ml:collect": "node backend/ml/collect.mjs",
+    "ml:train": "node scripts/ml.mjs train",
+    "ml:verify": "node scripts/ml.mjs verify",
     "dev": "concurrently -n API,COCKPIT -c yellow,cyan \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
     "build": "npm run build --prefix backend && npm run build --prefix frontend",
     "install:all": "npm ci && npm ci --prefix backend && npm ci --prefix frontend",

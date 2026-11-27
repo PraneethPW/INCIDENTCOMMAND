@@ -1,4 +1,7 @@
 node_modules
+.venv
+ml/.venv
+ml/data
 dist
 .env
 .env.*

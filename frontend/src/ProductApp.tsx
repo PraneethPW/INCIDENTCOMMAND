@@ -1,4 +1,6 @@
 import { MotionToggle } from "./MotionPreferences";
+import { TrainedMlPanel } from "./TrainedMl";
+import { MlSignal } from "./MlSignal";
 import { InfrastructurePanel } from "./Infrastructure";
 import { RuntimeWorkspace } from "./RuntimeWorkspace";
 import {
@@ -1616,6 +1618,17 @@ function CommandCenter({
                       </p>
                     )}
                     <h2>{selected.title}</h2>
+                    {selected.mlEvidence && (
+                      <div className="ml-incident-evidence">
+                        <MlSignal value={selected.mlEvidence} />
+                        <p>
+                          Model {selected.mlEvidence.modelVersion} · score{" "}
+                          {selected.mlEvidence.score?.toFixed(3)} / threshold{" "}
+                          {selected.mlEvidence.threshold.toFixed(3)} · response{" "}
+                          {selected.mlEvidence.latencyMs} ms.
+                        </p>
+                      </div>
+                    )}
                     <p>{selected.description}</p>
                   </div>
                   <div className="detail-metrics">
@@ -1728,6 +1741,13 @@ function CommandCenter({
 
         {view === "intelligence" && (
           <section className="intelligence-layout">
+            {config.capabilities?.trainedMl && (
+              <TrainedMlPanel
+                services={services}
+                user={user}
+                onRefresh={refresh}
+              />
+            )}
             <article className="panel intelligence-context">
               {selected ? (
                 <>
@@ -1888,6 +1908,9 @@ function CommandCenter({
                         {service.checkIntervalSeconds}s
                       </span>
                     </div>
+                    {config.capabilities?.trainedMl && (
+                      <MlSignal value={service.ml} />
+                    )}
                     <div className="service-url">
                       <span>HEALTH ENDPOINT</span>
                       <code>

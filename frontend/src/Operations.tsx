@@ -7,6 +7,7 @@ import {
 } from "react";
 import { Copy, RefreshCw, Settings2, Users, X } from "lucide-react";
 import { api } from "./api";
+import { MlSignal } from "./MlSignal";
 import type { Incident, Member, Service, ServiceHistory, User } from "./types";
 
 const message = (error: unknown) =>
@@ -123,6 +124,9 @@ export function ServiceControls({
         expectedStatus: Number(form.get("expectedStatus")),
         checkIntervalSeconds: Number(form.get("checkIntervalSeconds")),
         monitoringEnabled: form.get("monitoringEnabled") === "on",
+        ...(service.mlEnabled === undefined
+          ? {}
+          : { mlEnabled: form.get("mlEnabled") === "on" }),
       });
       setMode(null);
       onUpdated();
@@ -229,6 +233,16 @@ export function ServiceControls({
               />{" "}
               Scheduled monitoring enabled
             </label>
+            {service.mlEnabled !== undefined && (
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  name="mlEnabled"
+                  defaultChecked={service.mlEnabled}
+                />{" "}
+                Trained ML latency monitoring enabled
+              </label>
+            )}
             {error && (
               <p className="form-error" role="alert">
                 {error}
@@ -302,6 +316,7 @@ export function ServiceControls({
                     <b>
                       {item.latencyMs} ms · {item.statusCode ?? "No response"}
                     </b>
+                    {item.ml && <MlSignal value={item.ml} />}
                     <p>{item.message}</p>
                     <small>{new Date(item.at).toLocaleString()}</small>
                   </div>

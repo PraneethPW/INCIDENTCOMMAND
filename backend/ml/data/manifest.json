@@ -1,0 +1,26 @@
+{
+  "dataset": "Incident Command HTTP Latency Measurements",
+  "sha256": "6366685e3785a0ef5849a2897f8acfc719ce9d8777dbe44eb8e10d60bebcf421",
+  "sources": {
+    "operational": "Anonymized successful project health checks; no URLs, identifiers, credentials, messages or absolute timestamps.",
+    "controlled_http": "Measured HTTP 200 responses from an owned local fixture; explicit delays supply independent evaluation labels."
+  },
+  "featureSchema": [
+    "log_latency_ratio",
+    "log_robust_excess"
+  ],
+  "baseline": {
+    "minimum": 20,
+    "window": 60
+  },
+  "split": "Operational 60/20/20 chronological per series; controlled sessions 1-3 validation, 4-6 test; no controlled faults in training.",
+  "calibration": "99th percentile of successful operational validation scores; controlled labels and test data do not select the threshold.",
+  "limitations": [
+    "Successful operational checks are assumed normal, not independently labelled ground truth.",
+    "Anomaly recall is measured on owned HTTP fixtures with injected response delays, not production outages.",
+    "Only HTTP latency is modelled; Docker/Kubernetes state detection remains rule-based.",
+    "A service needs 20 successful baseline observations; scores are not probabilities or root-cause proof.",
+    "Time-ordered operational splits and disjoint controlled runs prevent random adjacent-row leakage.",
+    "Held-out baseline updates use prior model predictions; ground-truth fault labels never prepare features."
+  ]
+}

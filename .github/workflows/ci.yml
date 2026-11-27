@@ -1,6 +1,17 @@
 name: Verify application
 on: [push, pull_request]
 jobs:
+  trained-model:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/ml/requirements.txt
+      - run: python -m pip install -r backend/ml/requirements.txt
+      - run: python backend/ml/verify.py
   verify:
     runs-on: ubuntu-latest
     services:

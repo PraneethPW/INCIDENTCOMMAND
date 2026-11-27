@@ -3972,6 +3972,238 @@ body {
   border: 1px solid #67452e;
   background: #281b12;
 }
+.trained-ml-panel {
+  grid-column: 1 / -1;
+  padding: 24px;
+  min-width: 0;
+}
+.ml-panel-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+.ml-panel-heading > svg {
+  color: #ed945a;
+  flex-shrink: 0;
+}
+.ml-panel-heading h2 {
+  font-size: 25px;
+  margin: 8px 0 12px;
+}
+.ml-panel-heading p,
+.ml-scope-note {
+  color: #bea99a;
+  line-height: 1.8;
+  font-size: 13px;
+  max-width: 900px;
+}
+.ml-model-facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid #513629;
+  margin: 22px 0 16px;
+}
+.ml-model-facts > div {
+  padding: 18px;
+  border-right: 1px solid #513629;
+  display: grid;
+  gap: 10px;
+}
+.ml-model-facts > div:last-child {
+  border: 0;
+}
+.ml-model-facts small {
+  color: #ba9982;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+}
+.ml-model-facts b {
+  font-size: 18px;
+  color: #f0d0b7;
+}
+.ml-signal {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #d8b495;
+  font-size: 11px;
+  padding: 7px 10px;
+  background: #302115;
+  border: 1px solid #6a482c;
+  border-radius: 4px;
+  width: fit-content;
+}
+.ml-signal.normal {
+  color: #b9d4aa;
+  background: #1f2b1c;
+  border-color: #405c36;
+}
+.ml-signal.anomaly {
+  color: #ffbd89;
+  background: #512a15;
+  border-color: #b06d38;
+}
+.ml-signal.disabled,
+.ml-signal.unavailable {
+  color: #b4a398;
+  background: #221c18;
+  border-color: #514339;
+}
+.ml-service-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 18px 0;
+}
+.ml-service-state {
+  padding: 18px;
+  border: 1px solid #4b3326;
+  min-width: 0;
+}
+.ml-service-state > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.ml-service-state p,
+.ml-service-state small {
+  color: #baa18f;
+  font-size: 12px;
+  line-height: 1.8;
+  margin: 10px 0 0;
+  display: block;
+}
+.ml-text-action {
+  display: block;
+  background: none;
+  border: 0;
+  color: #edaa77;
+  padding: 12px 0 0;
+  cursor: pointer;
+  font-size: 12px;
+}
+.ml-preview-form {
+  display: flex;
+  gap: 14px;
+  align-items: end;
+  flex-wrap: wrap;
+  padding: 20px;
+  background: #20160f;
+  border: 1px solid #65432b;
+  margin-top: 20px;
+}
+.ml-preview-form > div:first-child {
+  flex-basis: 100%;
+  color: #e8c3a7;
+}
+.ml-preview-form > div:first-child > svg {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+.ml-preview-form p {
+  color: #bca18c;
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 8px 0 0;
+}
+.ml-preview-form label {
+  display: grid;
+  gap: 9px;
+  color: #c2a38d;
+  font-size: 11px;
+  flex: 1;
+  min-width: 180px;
+}
+.ml-preview-form input,
+.ml-preview-form select {
+  background: #16110d;
+  border: 1px solid #65432b;
+  padding: 11px 12px;
+  color: #eee0d6;
+  min-width: 0;
+}
+.ml-preview-result {
+  flex-basis: 100%;
+  padding-top: 14px;
+  border-top: 1px solid #65432b;
+}
+.ml-preview-result b {
+  display: block;
+  color: #d5b79f;
+  font-size: 12px;
+  margin-top: 10px;
+}
+.ml-validation {
+  margin-top: 24px;
+  border-top: 1px solid #513629;
+  padding-top: 18px;
+  color: #c6ac98;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.ml-validation summary {
+  cursor: pointer;
+  color: #ecb284;
+}
+.ml-validation code {
+  overflow-wrap: anywhere;
+}
+.ml-validation-results {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.ml-validation-results span {
+  display: block;
+  color: #bea18a;
+}
+.ml-validation ul {
+  padding-left: 20px;
+  list-style: disc;
+  margin-bottom: 18px;
+}
+.ml-validation img {
+  width: 100%;
+  max-width: 1000px;
+  height: auto;
+  margin-top: 20px;
+  background: white;
+}
+.ml-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 13px;
+  border: 1px solid #795132;
+  border-radius: 4px;
+  color: #f1b98e;
+}
+.ml-incident-evidence {
+  margin-top: 15px;
+}
+.ml-incident-evidence p {
+  font-size: 11px;
+  color: #bd9d86;
+  line-height: 1.7;
+}
+@media (max-width: 800px) {
+  .trained-ml-panel {
+    padding: 18px;
+  }
+  .ml-model-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ml-service-grid {
+    grid-template-columns: 1fr;
+  }
+  .ml-model-facts > div {
+    border-bottom: 1px solid #513629;
+  }
+}
 .runtime-connect-form input,
 .runtime-connect-form select {
   width: 100%;
