@@ -171,6 +171,15 @@ CREATE UNIQUE INDEX IF NOT EXISTS runtime_open_incident_idx ON incidents(runtime
 CREATE INDEX IF NOT EXISTS runtime_resources_org_idx ON runtime_resources(organization_id, source_id);
 
 ALTER TABLE services ADD COLUMN IF NOT EXISTS is_test BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE services ADD COLUMN IF NOT EXISTS ml_enabled BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE services ADD COLUMN IF NOT EXISTS ml_baseline_since TIMESTAMPTZ;
+ALTER TABLE services ADD COLUMN IF NOT EXISTS ml_last_result JSONB;
+ALTER TABLE services ADD COLUMN IF NOT EXISTS ml_anomaly_streak INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE services ADD COLUMN IF NOT EXISTS ml_normal_streak INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE service_checks ADD COLUMN IF NOT EXISTS ml_result JSONB;
+ALTER TABLE incidents ADD COLUMN IF NOT EXISTS ml_evidence JSONB;
+CREATE UNIQUE INDEX IF NOT EXISTS incidents_ml_open_idx ON incidents(service_id) WHERE source='ml-latency' AND status<>'resolved';
+CREATE INDEX IF NOT EXISTS checks_ml_baseline_idx ON service_checks(service_id,checked_at DESC);
 ALTER TABLE incidents ADD COLUMN IF NOT EXISTS is_test BOOLEAN NOT NULL DEFAULT FALSE;
 
 CREATE TABLE IF NOT EXISTS runtime_connections (

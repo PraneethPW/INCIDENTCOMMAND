@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { pool, transaction } from "./database.js";
 import { probe, httpError } from "./security.js";
+import { evaluateLatency, serviceBaseline, recordMlObservation } from "./ml.js";
 
 interface ServiceRow {
   id: string;
@@ -27,12 +28,16 @@ export async function checkService(
   return transaction(async (db) => {
     // A row lock serializes manual checks and all worker replicas for this service.
     const locked = await db.query(
-      `SELECT id, organization_id AS "organizationId", name, slug, region, health_url AS "healthUrl", expected_status AS "expectedStatus", check_interval_seconds AS "checkIntervalSeconds", consecutive_failures AS "consecutiveFailures", current_status AS "currentStatus", monitoring_enabled AS enabled, last_checked_at AS checked FROM services WHERE id=$1 AND organization_id=$2 FOR UPDATE`,
+      `SELECT id, organization_id AS "organizationId", name, slug, region, health_url AS "healthUrl", expected_status AS "expectedStatus", check_interval_seconds AS "checkIntervalSeconds", consecutive_failures AS "consecutiveFailures", current_status AS "currentStatus", monitoring_enabled AS enabled, ml_enabled,ml_last_result,ml_anomaly_streak,ml_normal_streak,last_checked_at AS checked FROM services WHERE id=$1 AND organization_id=$2 FOR UPDATE`,
       [input.id, input.organizationId],
     );
     const service = locked.rows[0] as ServiceRow & {
       enabled: boolean;
       checked: Date | null;
+      ml_enabled: boolean;
+      ml_last_result?: { modelVersion?: string } | null;
+      ml_anomaly_streak: number;
+      ml_normal_streak: number;
     };
     if (!service) throw httpError(404, "Service not found");
     if (
@@ -45,6 +50,11 @@ export async function checkService(
       return null;
     if (!service.healthUrl)
       throw httpError(400, "This service does not have a health URL");
+    const baseline = await serviceBaseline(
+      db,
+      service.id,
+      service.organizationId,
+    );
     const started = Date.now();
     let statusCode: number | null = null;
     let message = "";
@@ -59,6 +69,12 @@ export async function checkService(
       message = error instanceof Error ? error.message : "Health check failed";
     }
     const latencyMs = Date.now() - started;
+    const ml = evaluateLatency(
+      latencyMs,
+      baseline,
+      healthy,
+      service.ml_enabled,
+    );
     const failures = healthy ? 0 : service.consecutiveFailures + 1;
     const status: ServiceRow["currentStatus"] = healthy
       ? "healthy"
@@ -71,7 +87,7 @@ export async function checkService(
       [status, failures, service.id],
     );
     await db.query(
-      `INSERT INTO service_checks (organization_id, service_id, status, status_code, latency_ms, message) VALUES ($1,$2,$3,$4,$5,$6)`,
+      `INSERT INTO service_checks (organization_id, service_id, status, status_code, latency_ms, message,ml_result) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
       [
         service.organizationId,
         service.id,
@@ -79,6 +95,7 @@ export async function checkService(
         statusCode,
         latencyMs,
         message,
+        JSON.stringify(ml),
       ],
     );
 
@@ -128,6 +145,8 @@ export async function checkService(
       }
     }
 
+    await recordMlObservation(db, service, ml);
+
     // NOTIFY is delivered only when the transaction commits.
     await db.query(`SELECT pg_notify('incident_command', $1)`, [
       JSON.stringify({
@@ -146,6 +165,7 @@ export async function checkService(
       latencyMs,
       message,
       checkedAt: new Date().toISOString(),
+      ml,
     };
   });
 }

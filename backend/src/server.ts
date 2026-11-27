@@ -26,6 +26,7 @@ import {
 } from "./security.js";
 import { workspace } from "./workspace.js";
 import { runtime } from "./runtime.js";
+import { mlRoutes } from "./ml-routes.js";
 import {
   runtimeWorkspace,
   startRuntimeConnections,
@@ -91,7 +92,7 @@ const incidentSelect = `
   SELECT i.id, i.code, i.title, i.service, i.service_id AS "serviceId", i.severity, i.status, i.region,
     i.source, i.description, i.impact, i.latency_ms AS "latencyMs", i.error_rate::float AS "errorRate",
     i.started_at AS "startedAt", i.acknowledged_at AS "acknowledgedAt", i.resolved_at AS "resolvedAt",
-    i.is_test AS "isTest", i.updated_at AS "updatedAt", i.runtime_resource_id AS "runtimeResourceId", u.name AS "assigneeName", i.assigned_to AS "assignedTo"
+    i.ml_evidence AS "mlEvidence",i.is_test AS "isTest", i.updated_at AS "updatedAt", i.runtime_resource_id AS "runtimeResourceId", u.name AS "assigneeName", i.assigned_to AS "assignedTo"
   FROM incidents i LEFT JOIN users u ON u.id=i.assigned_to`;
 
 app.get("/api/config", async (_req, res) => {
@@ -101,6 +102,7 @@ app.get("/api/config", async (_req, res) => {
         operatorControls: true,
         runtimeTracking: true,
         runtimeWorkspace: true,
+        trainedMl: true,
       },
       databaseConfigured: Boolean(process.env.DATABASE_URL),
       databaseProvider: databaseProvider(process.env.DATABASE_URL),
@@ -254,6 +256,7 @@ app.use("/api", (req, res, next) =>
 
 app.use("/api", runtime);
 app.use("/api", runtimeWorkspace);
+app.use("/api", mlRoutes);
 
 app.get("/api/overview", async (req, res) => {
   const db = requirePool();
@@ -467,7 +470,7 @@ app.post(
       ),
       incident.rows[0].serviceId
         ? db.query(
-            `SELECT status,status_code,latency_ms,message,checked_at FROM service_checks WHERE organization_id=$1 AND service_id=$2 ORDER BY checked_at DESC LIMIT 30`,
+            `SELECT status,status_code,latency_ms,message,ml_result,checked_at FROM service_checks WHERE organization_id=$1 AND service_id=$2 ORDER BY checked_at DESC LIMIT 30`,
             [org, incident.rows[0].serviceId],
           )
         : Promise.resolve({ rows: [] }),
@@ -569,7 +572,7 @@ app.post(
 
 app.get("/api/services", async (req, res) => {
   const result = await requirePool().query(
-    `SELECT id,name,slug,description,region,health_url AS "healthUrl",expected_status AS "expectedStatus",check_interval_seconds AS "checkIntervalSeconds",monitoring_enabled AS "monitoringEnabled",CASE WHEN $2='viewer' THEN NULL ELSE ingest_key END AS "ingestKey",current_status AS "currentStatus",consecutive_failures AS "consecutiveFailures",last_checked_at AS "lastCheckedAt",created_at AS "createdAt" FROM services WHERE organization_id=$1 AND NOT is_test ORDER BY name`,
+    `SELECT id,name,slug,description,region,health_url AS "healthUrl",expected_status AS "expectedStatus",check_interval_seconds AS "checkIntervalSeconds",ml_enabled AS "mlEnabled",ml_last_result AS ml,monitoring_enabled AS "monitoringEnabled",CASE WHEN $2='viewer' THEN NULL ELSE ingest_key END AS "ingestKey",current_status AS "currentStatus",consecutive_failures AS "consecutiveFailures",last_checked_at AS "lastCheckedAt",created_at AS "createdAt" FROM services WHERE organization_id=$1 AND NOT is_test ORDER BY name`,
     [req.user!.organizationId, req.user!.role],
   );
   res.json({ data: result.rows });
@@ -630,11 +633,17 @@ app.patch("/api/services/:id", requireAdmin, async (req, res) => {
       expectedStatus: z.number().int().min(100).max(599),
       checkIntervalSeconds: z.number().int().min(30).max(3600),
       monitoringEnabled: z.boolean(),
+      mlEnabled: z.boolean().optional(),
     })
     .parse(req.body);
   if (input.healthUrl) healthUrl(input.healthUrl);
   const result = await requirePool().query(
-    `UPDATE services SET name=$1,description=$2,region=$3,health_url=$4,expected_status=$5,check_interval_seconds=$6,monitoring_enabled=$7 WHERE organization_id=$8 AND id=$9 RETURNING id`,
+    `UPDATE services SET name=$1,description=$2,region=$3,health_url=$4,expected_status=$5,check_interval_seconds=$6,monitoring_enabled=$7,ml_enabled=COALESCE($10,ml_enabled),
+      ml_baseline_since=CASE WHEN health_url IS DISTINCT FROM $4 OR expected_status IS DISTINCT FROM $5 THEN NOW() ELSE ml_baseline_since END,
+      ml_last_result=CASE WHEN health_url IS DISTINCT FROM $4 OR expected_status IS DISTINCT FROM $5 OR ml_enabled IS DISTINCT FROM COALESCE($10,ml_enabled) THEN NULL ELSE ml_last_result END,
+      ml_anomaly_streak=CASE WHEN health_url IS DISTINCT FROM $4 OR expected_status IS DISTINCT FROM $5 OR ml_enabled IS DISTINCT FROM COALESCE($10,ml_enabled) THEN 0 ELSE ml_anomaly_streak END,
+      ml_normal_streak=CASE WHEN health_url IS DISTINCT FROM $4 OR expected_status IS DISTINCT FROM $5 OR ml_enabled IS DISTINCT FROM COALESCE($10,ml_enabled) THEN 0 ELSE ml_normal_streak END
+      WHERE organization_id=$8 AND id=$9 RETURNING id`,
     [
       input.name,
       input.description,
@@ -645,6 +654,7 @@ app.patch("/api/services/:id", requireAdmin, async (req, res) => {
       input.monitoringEnabled,
       req.user!.organizationId,
       req.params.id,
+      input.mlEnabled ?? null,
     ],
   );
   if (!result.rowCount) throw httpError(404, "Service not found");
@@ -685,7 +695,7 @@ app.get("/api/services/:id/history", async (req, res) => {
     throw httpError(404, "Service not found");
   const [checks, telemetry] = await Promise.all([
     db.query(
-      'SELECT status,status_code AS "statusCode",latency_ms AS "latencyMs",message,checked_at AS "at" FROM service_checks WHERE organization_id=$1 AND service_id=$2 ORDER BY checked_at DESC LIMIT 30',
+      'SELECT status,status_code AS "statusCode",latency_ms AS "latencyMs",message,ml_result AS ml,checked_at AS "at" FROM service_checks WHERE organization_id=$1 AND service_id=$2 ORDER BY checked_at DESC LIMIT 30',
       [org, req.params.id],
     ),
     db.query(

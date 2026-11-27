@@ -21,6 +21,8 @@ export class ApiError extends Error {
 
 const apiBase = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 const apiUrl = (path: string) => `${apiBase}${path}`;
+export const mlDatasetUrl = apiUrl("/api/ml/dataset");
+export const mlEvaluationUrl = apiUrl("/api/ml/evaluation");
 
 export const ingestUrl = (id: string) =>
   new URL(apiUrl(`/api/ingest/${id}`), window.location.origin).href;
@@ -46,6 +48,17 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  mlModel: async () =>
+    (await request<{ data: import("./types").MlModel }>("/api/ml/model")).data,
+  mlPreview: async (serviceId: string, latencyMs: number) =>
+    (
+      await request<{ data: import("./types").MlResult }>("/api/ml/preview", {
+        method: "POST",
+        body: JSON.stringify({ serviceId, latencyMs }),
+      })
+    ).data,
+  resetMlBaseline: (id: string) =>
+    request(`/api/services/${id}/ml/reset`, { method: "POST" }),
   runtimeConnections: async () =>
     (
       await request<{ data: import("./types").RuntimeConnection[] }>(

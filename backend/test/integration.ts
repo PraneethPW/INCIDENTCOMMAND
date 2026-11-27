@@ -923,6 +923,189 @@ test("readiness rejects an incomplete application schema", async () => {
   assert.equal((await call("/api/health")).status, 200);
 });
 
+test("trained ML detects sustained slow HTTP 200 responses, scopes evidence and verifies recovery independently of availability", async () => {
+  const operator = await register();
+  const created = (
+    await call("/api/services", operator.cookie, {
+      name: "ML latency service",
+      healthUrl: "https://example.com/health",
+    })
+  ).data;
+  await db.query(
+    "UPDATE services SET created_at=NOW()-INTERVAL '1 hour' WHERE id=$1",
+    [created.id],
+  );
+  await db.query(
+    `INSERT INTO service_checks(organization_id,service_id,status,status_code,latency_ms,message,checked_at)
+    SELECT $1,$2,'healthy',200,5,'Test baseline fixture',NOW()-make_interval(secs=>n) FROM generate_series(1,25) n`,
+    [operator.org, created.id],
+  );
+  const input = {
+    ...created,
+    organizationId: operator.org,
+    healthUrl: "https://example.com/health",
+    consecutiveFailures: 0,
+  };
+  await db.query(
+    "UPDATE services SET ml_anomaly_streak=6,ml_last_result=$2 WHERE id=$1",
+    [created.id, JSON.stringify({ modelVersion: "retired-model" })],
+  );
+  const slow = async () => {
+    await delay(100);
+    return 200;
+  };
+  const first = await checkService(input, false, slow);
+  assert.equal(first!.status, "healthy");
+  assert.equal(first!.ml.state, "anomaly");
+  assert.equal((await call("/api/incidents", operator.cookie)).data.length, 0);
+  await Promise.all([
+    checkService(input, false, slow),
+    checkService(input, false, slow),
+  ]);
+  const incidents = (await call("/api/incidents", operator.cookie)).data;
+  assert.equal(incidents.length, 1);
+  assert.equal(incidents[0].source, "ml-latency");
+  assert.ok(incidents[0].mlEvidence.score >= incidents[0].mlEvidence.threshold);
+  assert.equal(
+    (await call("/api/incidents", other.cookie)).data.some(
+      (i: { id: string }) => i.id === incidents[0].id,
+    ),
+    false,
+  );
+  const preview = await call("/api/ml/preview", operator.cookie, {
+    serviceId: created.id,
+    latencyMs: 1000,
+  });
+  assert.equal(preview.data.state, "anomaly");
+  assert.equal(preview.data.persisted, false);
+  assert.equal(
+    (
+      await call("/api/ml/preview", other.cookie, {
+        serviceId: created.id,
+        latencyMs: 1000,
+      })
+    ).status,
+    404,
+  );
+  await checkService(input, false, async () => 200);
+  assert.equal(
+    (await call(`/api/incidents/${incidents[0].id}`, operator.cookie)).data
+      .status,
+    "investigating",
+  );
+  await checkService(input, false, async () => 200);
+  assert.equal(
+    (await call(`/api/incidents/${incidents[0].id}`, operator.cookie)).data
+      .status,
+    "resolved",
+  );
+  const history = (
+    await call(`/api/services/${created.id}/history`, operator.cookie)
+  ).data;
+  assert.ok(
+    history.checks.some(
+      (c: { ml: { modelVersion: string } }) => c.ml?.modelVersion,
+    ),
+  );
+  await checkService(input, false, slow);
+  await checkService(input, false, slow);
+  const open = (await call("/api/incidents", operator.cookie)).data.find(
+    (i: { status: string }) => i.status !== "resolved",
+  );
+  assert.ok(open);
+  const settings = (await call("/api/services", operator.cookie)).data.find(
+    (s: { id: string }) => s.id === created.id,
+  );
+  const body = {
+    name: settings.name,
+    description: settings.description,
+    region: settings.region,
+    healthUrl: settings.healthUrl,
+    expectedStatus: settings.expectedStatus,
+    checkIntervalSeconds: settings.checkIntervalSeconds,
+    monitoringEnabled: settings.monitoringEnabled,
+    mlEnabled: false,
+  };
+  assert.equal(
+    (await call(`/api/services/${created.id}`, operator.cookie, body, "PATCH"))
+      .status,
+    200,
+  );
+  assert.equal(
+    (await checkService(input, false, async () => 200))!.ml.state,
+    "disabled",
+  );
+  assert.equal(
+    (await call(`/api/incidents/${open.id}`, operator.cookie)).data.status,
+    "investigating",
+  );
+  await call(
+    `/api/services/${created.id}`,
+    operator.cookie,
+    { ...body, mlEnabled: true },
+    "PATCH",
+  );
+  await call(`/api/services/${created.id}/ml/reset`, operator.cookie, {});
+  assert.equal(
+    (await checkService(input, false, async () => 200))!.ml.state,
+    "learning",
+  );
+  assert.equal(
+    (await call(`/api/incidents/${open.id}`, operator.cookie)).data.status,
+    "investigating",
+  );
+  const otherReset = await call(
+    `/api/services/${created.id}/ml/reset`,
+    other.cookie,
+    {},
+  );
+  assert.equal(otherReset.status, 404);
+  assert.equal((await call("/api/ml/model")).status, 401);
+  const model = (await call("/api/ml/model", operator.cookie)).data;
+  assert.equal(model.algorithm, "Isolation Forest");
+  const archive = await fetch(base + "/api/ml/dataset", {
+    headers: { cookie: operator.cookie },
+  });
+  assert.equal(archive.status, 200);
+  assert.equal(
+    Buffer.from(await archive.arrayBuffer())
+      .subarray(0, 2)
+      .toString(),
+    "PK",
+  );
+  const figure = await fetch(base + "/api/ml/evaluation", {
+    headers: { cookie: operator.cookie },
+  });
+  assert.equal(figure.status, 200);
+  assert.ok(figure.headers.get("content-type")!.includes("image/png"));
+
+  assert.ok(model.limitations.length > 0);
+  const viewer = await register();
+  viewer.cookie = (
+    await call("/api/workspaces/switch", viewer.cookie, {
+      organizationId: viewer.org,
+    })
+  ).cookie;
+  await db.query(
+    "UPDATE memberships SET role='viewer' WHERE user_id=$1 AND organization_id=$2",
+    [viewer.id, viewer.org],
+  );
+  assert.equal(
+    (
+      await call("/api/ml/preview", viewer.cookie, {
+        serviceId: created.id,
+        latencyMs: 1000,
+      })
+    ).status,
+    403,
+  );
+  assert.equal(
+    (await call(`/api/services/${created.id}/ml/reset`, viewer.cookie, {}))
+      .status,
+    403,
+  );
+});
+
 test("browser labs isolate test data, deduplicate failures, retain missing incidents and verify simulated recovery", async () => {
   const operator = await register();
   const lab = await call("/api/runtime/labs", operator.cookie, {
